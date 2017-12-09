@@ -1,0 +1,1 @@
+../bazel-bin/src/protoc-gen-ts_interfaces.js
