@@ -6,7 +6,7 @@ ts_library(
     srcs = [
         "protoc-gen-ts_interfaces.ts",
     ],
-    # tsconfig = "//:tsconfig.json",
+    tsconfig = "//:tsconfig.json",
     # deps = ["//:node_modules"],
     # module_name = "sm",
 )
