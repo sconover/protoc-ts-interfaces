@@ -9,5 +9,6 @@ def ts_test(test_file=None):
             "@nodejs//:bin/node",
             "//:node_modules/mocha/bin/mocha",
             "//:node_modules/@types/node",
+            "//src:protoc-gen-ts_interfaces.ts",
         ],
     )
