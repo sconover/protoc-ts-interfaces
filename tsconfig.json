@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "sourceMap": true,
+
+    // MUST be set to this or vscode won't see stuff in node_modules, and you'll get red squigglies on import statements
+    "module": "commonjs"
+  }
+}

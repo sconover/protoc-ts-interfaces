@@ -1,4 +1,4 @@
-workspace(name = "protoc_ts_interface")
+workspace(name = "protoc_ts_interfaces")
 
 http_archive(
     name = "build_bazel_rules_nodejs",

@@ -1,3 +1,4 @@
 #!/usr/bin/env node
 
-require("./protoc-gen-ts_interfaces.js")
+var dist = require("./dist.js")
+dist.transformStream(process.stdin, process.stdout)
