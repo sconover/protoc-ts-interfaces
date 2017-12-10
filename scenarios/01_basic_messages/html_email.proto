@@ -1,0 +1,9 @@
+syntax = "proto3";
+package html_email;
+
+import "scenarios/01_basic_messages/plain_email.proto";
+
+message HtmlEmail {
+  plain_email.PlainEmail plain_email = 1;
+  string body_html = 2;
+}

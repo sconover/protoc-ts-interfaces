@@ -1,4 +1,4 @@
-def ts_test(test_file=None):
+def ts_test(test_file=None, more_data=[]):
     native.sh_test(
         name = test_file + "_test",
         size = "small",
@@ -10,5 +10,5 @@ def ts_test(test_file=None):
             "//:node_modules/mocha/bin/mocha",
             "//:node_modules/@types/node",
             "//src:protoc-gen-ts_interfaces.ts",
-        ],
+        ] + more_data,
     )
