@@ -1,4 +1,4 @@
-import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
+import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto, DescriptorProto, FieldDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
 
 export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "generated.d.ts"
@@ -52,6 +52,13 @@ class TypescriptDeclarationComposer {
     return this
   }
 
+  startConstEnum(name: string): TypescriptDeclarationComposer {
+    this.appendSeparatorLineIfAlreadyStarted()
+    this.appendLine(`const enum ${name} {`)
+    this.alreadyStarted = true
+    return this
+  }
+
   endBlock(): TypescriptDeclarationComposer {
     if (this.namespace != null) {
       this.appendSeparatorLineIfAlreadyStarted()
@@ -63,6 +70,16 @@ class TypescriptDeclarationComposer {
   member(memberName: string, typeName: string): TypescriptDeclarationComposer {
     this.appendLine(`${memberName}: ${typeName}`)
     return this
+  }
+
+  enumValue(enumName: string, enumNumber: number): TypescriptDeclarationComposer {
+    this.appendLine(`${enumName} = ${enumNumber},`) // there's a comma
+    return this;
+  }
+
+  lastEnumValue(enumName: string, enumNumber: number): TypescriptDeclarationComposer {
+    this.appendLine(`${enumName} = ${enumNumber}`) // note: no comma
+    return this;
   }
 
   withIndent(): TypescriptDeclarationComposer {
@@ -78,49 +95,36 @@ class TypescriptDeclarationComposer {
   }
 }
 
-/** Core operation. Transforms protoc input, a series of proto files, into the
- * output, which is a single file containing all gen'd ts interfaces, based 
- * on the proto defs.
- */
-export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
-  const tsComposer = new TypescriptDeclarationComposer()
-
-  for (let protoFile of input.getProtoFileList()) {
-    let tsComposerForMessages = null
-    if (protoFile.hasPackage()) {
-      tsComposer.startNamespace(protoFile.getPackage())
-      tsComposerForMessages = tsComposer.withIndent()
+/** Given a proto enum type, write the corresponding ts "const enum" */
+function transformProtoEnumTypeToTypescriptInterface(
+  tsComposer: TypescriptDeclarationComposer, 
+  protoEnumType: EnumDescriptorProto, 
+  fullyQualifiedToShorthandTypeMap: any) {
+  tsComposer.startConstEnum(protoEnumType.getName());
+  const tsComposerForEnumValues = tsComposer.withIndent();
+  const lastIndex = protoEnumType.getValueList().length - 1
+  protoEnumType.getValueList().forEach((protoEnumValue, index) => {
+    if (index == lastIndex) {
+      transformProtoEnumValueToLastTypescriptEnumValue(tsComposerForEnumValues, protoEnumValue);
     } else {
-      tsComposerForMessages = tsComposer
+      transformProtoEnumValueToTypescriptEnumValue(tsComposerForEnumValues, protoEnumValue);
     }
-    for (let protoMessageType of protoFile.getMessageTypeList()) {
-      transformProtoMessageTypeToTypescriptInterface(tsComposerForMessages, protoMessageType);
-    }
-    if (protoFile.hasPackage()) {
-      tsComposer.endBlock()
-    }
-  }
-
-  const outTsFile = new CodeGeneratorResponse.File()
-  outTsFile.setName(GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME)
-  outTsFile.setContent(tsComposer.getContent())
-  const codeGenResponse = new CodeGeneratorResponse()
-  codeGenResponse.addFile(outTsFile)
-      
-  return codeGenResponse
-}
-
-/** Given a proto message type, write the corresponding ts interface */
-function transformProtoMessageTypeToTypescriptInterface(tsComposer: TypescriptDeclarationComposer, protoMessageType: DescriptorProto) {
-  tsComposer.startInterface(protoMessageType.getName());
-  const tsComposerForFields = tsComposer.withIndent();
-  for (let protoField of protoMessageType.getFieldList()) {
-    transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField);
-  }
+  });
   tsComposer.endBlock();
 }
 
-const BYTES_TYPE = 12;
+/** Given a proto message type, write the corresponding ts interface */
+function transformProtoMessageTypeToTypescriptInterface(
+  tsComposer: TypescriptDeclarationComposer, 
+  protoMessageType: DescriptorProto,
+  fullyQualifiedToShorthandTypeMap: any) {
+  tsComposer.startInterface(protoMessageType.getName());
+  const tsComposerForFields = tsComposer.withIndent();
+  for (let protoField of protoMessageType.getFieldList()) {
+    transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField, fullyQualifiedToShorthandTypeMap);
+  }
+  tsComposer.endBlock();
+}
 
 // directly lifted from ts-protoc-gen
 const TypeNumToTypeString: {[key: number]: string} = {};
@@ -135,17 +139,21 @@ TypeNumToTypeString[8] = "boolean"; // TYPE_BOOL
 TypeNumToTypeString[9] = "string"; // TYPE_STRING
 // TypeNumToTypeString[10] = "Object"; // TYPE_GROUP
 // TypeNumToTypeString[MESSAGE_TYPE] = "Object"; // TYPE_MESSAGE - Length-delimited aggregate.
-TypeNumToTypeString[BYTES_TYPE] = "Uint8Array"; // TYPE_BYTES
+TypeNumToTypeString[12] = "Uint8Array"; // TYPE_BYTES
 TypeNumToTypeString[13] = "number"; // TYPE_UINT32
-// TypeNumToTypeString[ENUM_TYPE] = "number"; // TYPE_ENUM
+TypeNumToTypeString[14] = "number"; // TYPE_ENUM
 TypeNumToTypeString[15] = "number"; // TYPE_SFIXED32
 TypeNumToTypeString[16] = "number"; // TYPE_SFIXED64
 TypeNumToTypeString[17] = "number"; // TYPE_SINT32 - Uses ZigZag encoding.
 TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
 
 /** Given a proto field, write the corresponding member of a ts interface */
-function transformProtoFieldToTypescriptInterfaceMember(tsComposer: TypescriptDeclarationComposer, protoField: FieldDescriptorProto) {
-  if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE) {
+function transformProtoFieldToTypescriptInterfaceMember(
+  tsComposer: TypescriptDeclarationComposer, 
+  protoField: FieldDescriptorProto,
+  fullyQualifiedToShorthandTypeMap: any) {
+  if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE || 
+      protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
     let tsTypeName = protoField.getTypeName()
     if (tsTypeName.indexOf(".")==0) {
       // Slicing the leading dot off the fully qualified type name
@@ -153,7 +161,7 @@ function transformProtoFieldToTypescriptInterfaceMember(tsComposer: TypescriptDe
       // but, moving on...
       tsTypeName = tsTypeName.slice(1)
     }
-    tsComposer.member(protoField.getName(), tsTypeName);
+    tsComposer.member(protoField.getName(), resolveTypeNameShorthand(tsTypeName, fullyQualifiedToShorthandTypeMap));
   } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
     tsComposer.member(protoField.getName(), "Uint8Array | string");
   } else {
@@ -163,6 +171,77 @@ function transformProtoFieldToTypescriptInterfaceMember(tsComposer: TypescriptDe
     }
     tsComposer.member(protoField.getName(), tsType);
   }
+}
+
+/** Given a proto enum value, write the corresponding ts enum value */
+function transformProtoEnumValueToTypescriptEnumValue(tsComposer: TypescriptDeclarationComposer, protoEnumValue: EnumValueDescriptorProto): void {
+  tsComposer.enumValue(protoEnumValue.getName(), protoEnumValue.getNumber());
+}
+
+/** Given a proto enum value, write the corresponding ts enum value (last position in list) */
+function transformProtoEnumValueToLastTypescriptEnumValue(tsComposer: TypescriptDeclarationComposer, protoEnumValue: EnumValueDescriptorProto): void {
+  tsComposer.lastEnumValue(protoEnumValue.getName(), protoEnumValue.getNumber());
+}
+
+function resolveTypeNameShorthand(protoTypeName: string, fullyQualifiedToShorthandTypeMap: {}): string {
+  if (fullyQualifiedToShorthandTypeMap[protoTypeName] != null) {
+    return fullyQualifiedToShorthandTypeMap[protoTypeName]
+  } else {
+    return protoTypeName
+  }
+}
+
+/** Core operation. Transforms protoc input, a series of proto files, into the
+ * output, which is a single file containing all gen'd ts interfaces, based 
+ * on the proto defs.
+ */
+export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
+  const tsComposer = new TypescriptDeclarationComposer()
+
+  for (let protoFile of input.getProtoFileList()) {
+    let tsComposerForMessages = null
+    let currentPackagePrefix = null
+    let fullyQualifiedToShorthandTypeMap = {}
+    if (protoFile.hasPackage()) {
+      tsComposer.startNamespace(protoFile.getPackage())
+      currentPackagePrefix = protoFile.getPackage() + "."
+      tsComposerForMessages = tsComposer.withIndent()
+    } else {
+      tsComposerForMessages = tsComposer
+      currentPackagePrefix = ""
+    }
+    for (let protoMessageType of protoFile.getMessageTypeList()) {
+      // NOTE: this shifts inside-message proto enums to sibling-to-message ts enums.
+      // TODO: fail if enum names collide because of this.
+      for (let protoEnumType of protoMessageType.getEnumTypeList()) {
+        transformProtoEnumTypeToTypescriptInterface(tsComposerForMessages, protoEnumType, fullyQualifiedToShorthandTypeMap);
+
+        // this says, make any fully-qualified references to proto enums defined within proto messages,
+        // appear to be namespace-level const-enums in ts
+        fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoMessageType.getName() + "." + protoEnumType.getName()] = 
+          protoEnumType.getName()
+      }
+    }
+    for (let protoEnumType of protoFile.getEnumTypeList()) {
+      transformProtoEnumTypeToTypescriptInterface(tsComposerForMessages, protoEnumType, fullyQualifiedToShorthandTypeMap);
+      fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoEnumType.getName()] = protoEnumType.getName()
+    }
+    for (let protoMessageType of protoFile.getMessageTypeList()) {
+      transformProtoMessageTypeToTypescriptInterface(tsComposerForMessages, protoMessageType, fullyQualifiedToShorthandTypeMap);
+      fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoMessageType.getName()] = protoMessageType.getName()
+    }
+    if (protoFile.hasPackage()) {
+      tsComposer.endBlock()
+    }
+  }
+
+  const outTsFile = new CodeGeneratorResponse.File()
+  outTsFile.setName(GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME)
+  outTsFile.setContent(tsComposer.getContent())
+  const codeGenResponse = new CodeGeneratorResponse()
+  codeGenResponse.addFile(outTsFile)
+      
+  return codeGenResponse
 }
 
 /** Top-level function, that deserializes CodeGeneratorRequest's,

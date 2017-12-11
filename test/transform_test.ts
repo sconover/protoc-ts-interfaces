@@ -4,8 +4,15 @@ const assert: any = require("assert")
 
 import {transform} from "../src/protoc-gen-ts_interfaces";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb"
-import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb"
+import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb"
 import * as ts from "typescript"
+
+function extractEnumInfo(node: ts.Node): any {
+  const enumNode = (<ts.EnumDeclaration>node)
+  const enumName = (<ts.Identifier>enumNode.name).escapedText
+  const valueInfo = enumNode.members.map(m => (<ts.Identifier>m.name).escapedText)
+  return [enumName, valueInfo]
+}
 
 function extractInterfaceInfo(node: ts.Node): any {
   const interfaceNode = (<ts.InterfaceDeclaration>node)
@@ -35,43 +42,93 @@ function childNodes(node: ts.Node): Array<ts.Node> {
   return results
 }
 
+class EnumProtoBuilder {
+  name: string
+  protoValues: Array<EnumValueDescriptorProto> = new Array()
+
+  setName(name: string): EnumProtoBuilder {
+    this.name = name
+    return this
+  }
+
+  addValue(name: string): EnumProtoBuilder {
+    const protoValue = new EnumValueDescriptorProto()
+    protoValue.setName(name)
+    protoValue.setNumber(this.protoValues.length + 1)
+    this.protoValues.push(protoValue)
+    return this
+  }
+
+  build(): EnumDescriptorProto {
+    const protoEnum = new EnumDescriptorProto()
+    protoEnum.setName(this.name)
+    for (let v of this.protoValues) {
+      protoEnum.addValue(v)
+    }
+    return protoEnum
+  }
+}
+
 class MessageTypeProtoBuilder {
   name: string
-  fieldDescriptors: Array<FieldDescriptorProto> = new Array()
+  protoEnumTypes: Array<EnumDescriptorProto> = new Array()
+  protoFields: Array<FieldDescriptorProto> = new Array()
 
   setName(name: string): MessageTypeProtoBuilder {
     this.name = name
     return this
   }
 
+  addEnumType(protoEnum: EnumDescriptorProto): MessageTypeProtoBuilder {
+    this.protoEnumTypes.push(protoEnum)
+    return this
+  }
+
   addPrimitiveField(name: string, protoTypeNumber: number): MessageTypeProtoBuilder {
-    const fieldDescriptorProto = new FieldDescriptorProto()
-    fieldDescriptorProto.setName(name)
-    fieldDescriptorProto.setType(protoTypeNumber)
-    this.fieldDescriptors.push(fieldDescriptorProto)
+    const protoField = new FieldDescriptorProto()
+    protoField.setName(name)
+    protoField.setType(protoTypeNumber)
+    this.protoFields.push(protoField)
     return this
   }
 
   addMessageField(name: string, messageType: DescriptorProto, packageName: string = null): MessageTypeProtoBuilder {
-    const fieldDescriptorProto = new FieldDescriptorProto()
-    fieldDescriptorProto.setName(name)
-    fieldDescriptorProto.setType(FieldDescriptorProto.Type.TYPE_MESSAGE)
+    const protoField = new FieldDescriptorProto()
+    protoField.setName(name)
+    protoField.setType(FieldDescriptorProto.Type.TYPE_MESSAGE)
     if (packageName == null) {
-      fieldDescriptorProto.setTypeName(messageType.getName())
+      protoField.setTypeName(messageType.getName())
     } else {
-      fieldDescriptorProto.setTypeName("." + packageName + "." + messageType.getName())
+      protoField.setTypeName("." + packageName + "." + messageType.getName())
     }
-    this.fieldDescriptors.push(fieldDescriptorProto)
+    this.protoFields.push(protoField)
+    return this
+  }
+
+  addEnumField(name: string, enumType: EnumDescriptorProto): MessageTypeProtoBuilder {
+    const protoField = new FieldDescriptorProto()
+    protoField.setName(name)
+    protoField.setType(FieldDescriptorProto.Type.TYPE_ENUM)
+    protoField.setTypeName(enumType.getName())
+    // if (packageName == null) {
+    //   fieldDescriptorProto.setTypeName(messageType.getName())
+    // } else {
+    //   fieldDescriptorProto.setTypeName("." + packageName + "." + messageType.getName())
+    // }
+    this.protoFields.push(protoField)
     return this
   }
 
   build(): DescriptorProto {
-    const messageTypeDescriptor = new DescriptorProto()
-    messageTypeDescriptor.setName(this.name)
-    for (let f of this.fieldDescriptors) {
-      messageTypeDescriptor.addField(f)
+    const protoMessageType = new DescriptorProto()
+    protoMessageType.setName(this.name)
+    for (let e of this.protoEnumTypes) {
+      protoMessageType.addEnumType(e)
     }
-    return messageTypeDescriptor
+    for (let f of this.protoFields) {
+      protoMessageType.addField(f)
+    }
+    return protoMessageType
   }
 }
 
@@ -90,14 +147,14 @@ class FileDescriptorProtoBuilder {
   }
 
   build(): FileDescriptorProto {
-    const fileDescriptor = new FileDescriptorProto()
+    const protoFile = new FileDescriptorProto()
     if (this.packageName != null) {
-      fileDescriptor.setPackage(this.packageName)
+      protoFile.setPackage(this.packageName)
     }
     for (let m of this.messageTypes) {
-      fileDescriptor.addMessageType(m)
+      protoFile.addMessageType(m)
     }
-    return fileDescriptor
+    return protoFile
   }
 }
 
@@ -210,7 +267,7 @@ suite("transform", () => {
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
   })
 
-  test("previously-defined message types referenced in the same namespace are non-qualified", () => {
+  test("previously-defined message types referenced in the same namespace", () => {
     const fortuneCookieMessageType =
       new MessageTypeProtoBuilder()
         .setName("FortuneCookie")
@@ -269,10 +326,10 @@ suite("transform", () => {
                 .addPrimitiveField("originally_bool", FieldDescriptorProto.Type.TYPE_BOOL)
                 .addPrimitiveField("originally_string", FieldDescriptorProto.Type.TYPE_STRING)
                 // .addPrimitiveField("originally_group", FieldDescriptorProto.Type.TYPE_GROUP) NOT PRIMITIVE / UNSUPPORTED FOR NOW.
-                // .addPrimitiveField("originally_message", FieldDescriptorProto.Type.TYPE_MESSAGE) NOT PRIMITIVE / SUPPORTED (tested elsewhere)
+                // .addPrimitiveField("originally_message", FieldDescriptorProto.Type.TYPE_MESSAGE) SUPPORTED (tested elsewhere)
                 .addPrimitiveField("originally_bytes", FieldDescriptorProto.Type.TYPE_BYTES)
                 .addPrimitiveField("originally_uint32", FieldDescriptorProto.Type.TYPE_UINT32)
-                // .addPrimitiveField("originally_enum", FieldDescriptorProto.Type.TYPE_ENUM) UNSUPPORTED FOR NOW / TODO
+                // .addPrimitiveField("originally_enum", FieldDescriptorProto.Type.TYPE_ENUM) SUPPORTED (tested elsewhere)
                 .addPrimitiveField("originally_sfixed32", FieldDescriptorProto.Type.TYPE_SFIXED32)
                 .addPrimitiveField("originally_sfixed64", FieldDescriptorProto.Type.TYPE_SFIXED64)
                 .addPrimitiveField("originally_sint32", FieldDescriptorProto.Type.TYPE_SINT32)
@@ -300,4 +357,41 @@ suite("transform", () => {
         ["originally_sint64", "NumberKeyword"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
   })
+
+  test("convert an enum nested in a message to a typescript const enum that is sibling to the interface definition", () => {
+    const protoFortuneKindEnum = 
+      new EnumProtoBuilder()
+        .setName("FortuneKind")
+        .addValue("A_WISE_SOUNDING_BUT_ACTUALLY_CONFUSED_STATEMENT")
+        .addValue("SPECIFIC_PREDICTION_OF_WHAT_WILL_HAPPEN")
+        .build()
+
+    const codeGenResponse = transform(
+      new CodeGeneratorRequestBuilder()
+        .addProtoFile(
+          new FileDescriptorProtoBuilder()
+            .addMessageType(
+              new MessageTypeProtoBuilder()
+                .setName("FortuneCookie")
+                .addEnumType(protoFortuneKindEnum)
+                .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
+                .addEnumField("fortune_kind", protoFortuneKindEnum)
+                .build())
+          .build())
+        .build())
+
+    assert.deepEqual(
+      ["FortuneKind", [
+        "A_WISE_SOUNDING_BUT_ACTUALLY_CONFUSED_STATEMENT", 
+        "SPECIFIC_PREDICTION_OF_WHAT_WILL_HAPPEN"]], 
+      extractEnumInfo(childNode(codeGenResponse, 0)))
+
+    assert.deepEqual(
+      ["FortuneCookie", [
+        ["fortune_content", "StringKeyword"], 
+        ["fortune_kind", "FortuneKind"]]], 
+      extractInterfaceInfo(childNode(codeGenResponse, 1)))
+  })
+
+  //TODO: detect naming collisions and make sure good errors are raised, instead of silently overwriting
 })
