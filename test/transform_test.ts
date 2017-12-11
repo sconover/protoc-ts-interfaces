@@ -250,4 +250,54 @@ suite("transform", () => {
         ["cookie", "FortuneCookie"]]],
       extractInterfaceInfo(interfaceNodes[1]))
   })
+
+  test("demonstrate members of each primitive type", () => {
+    const codeGenResponse = transform(
+      new CodeGeneratorRequestBuilder()
+        .addProtoFile(
+          new FileDescriptorProtoBuilder()
+            .addMessageType(
+              new MessageTypeProtoBuilder()
+                .setName("Smorgasbord")
+                .addPrimitiveField("originally_double", FieldDescriptorProto.Type.TYPE_DOUBLE)
+                .addPrimitiveField("originally_float", FieldDescriptorProto.Type.TYPE_FLOAT)
+                .addPrimitiveField("originally_int64", FieldDescriptorProto.Type.TYPE_INT64)
+                .addPrimitiveField("originally_uint64", FieldDescriptorProto.Type.TYPE_UINT64)
+                .addPrimitiveField("originally_int32", FieldDescriptorProto.Type.TYPE_INT32)
+                .addPrimitiveField("originally_fixed64", FieldDescriptorProto.Type.TYPE_FIXED64)
+                .addPrimitiveField("originally_fixed32", FieldDescriptorProto.Type.TYPE_FIXED32)
+                .addPrimitiveField("originally_bool", FieldDescriptorProto.Type.TYPE_BOOL)
+                .addPrimitiveField("originally_string", FieldDescriptorProto.Type.TYPE_STRING)
+                // .addPrimitiveField("originally_group", FieldDescriptorProto.Type.TYPE_GROUP) NOT PRIMITIVE / UNSUPPORTED FOR NOW.
+                // .addPrimitiveField("originally_message", FieldDescriptorProto.Type.TYPE_MESSAGE) NOT PRIMITIVE / SUPPORTED (tested elsewhere)
+                .addPrimitiveField("originally_bytes", FieldDescriptorProto.Type.TYPE_BYTES)
+                .addPrimitiveField("originally_uint32", FieldDescriptorProto.Type.TYPE_UINT32)
+                // .addPrimitiveField("originally_enum", FieldDescriptorProto.Type.TYPE_ENUM) UNSUPPORTED FOR NOW / TODO
+                .addPrimitiveField("originally_sfixed32", FieldDescriptorProto.Type.TYPE_SFIXED32)
+                .addPrimitiveField("originally_sfixed64", FieldDescriptorProto.Type.TYPE_SFIXED64)
+                .addPrimitiveField("originally_sint32", FieldDescriptorProto.Type.TYPE_SINT32)
+                .addPrimitiveField("originally_sint64", FieldDescriptorProto.Type.TYPE_SINT64)
+                .build())
+          .build())
+        .build())
+
+    assert.deepEqual(
+      ["Smorgasbord", [
+        ["originally_double", "NumberKeyword"], 
+        ["originally_float", "NumberKeyword"], 
+        ["originally_int64", "NumberKeyword"], 
+        ["originally_uint64", "NumberKeyword"], 
+        ["originally_int32", "NumberKeyword"], 
+        ["originally_fixed64", "NumberKeyword"], 
+        ["originally_fixed32", "NumberKeyword"], 
+        ["originally_bool", "BooleanKeyword"], 
+        ["originally_string", "StringKeyword"], 
+        ["originally_bytes", "UnionType"], 
+        ["originally_uint32", "NumberKeyword"], 
+        ["originally_sfixed32", "NumberKeyword"], 
+        ["originally_sfixed64", "NumberKeyword"], 
+        ["originally_sint32", "NumberKeyword"], 
+        ["originally_sint64", "NumberKeyword"]]], 
+      extractInterfaceInfo(childNode(codeGenResponse, 0)))
+  })
 })

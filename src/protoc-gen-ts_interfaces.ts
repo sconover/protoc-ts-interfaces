@@ -3,6 +3,7 @@ import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/googl
 
 export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "generated.d.ts"
 
+/** Accumulates ts interface file content */
 class StringWriter {
   content: string = ""
 
@@ -15,6 +16,7 @@ class StringWriter {
   }
 }
 
+/** A higher-level/convenient way of generating ts interface file content */
 class TypescriptDeclarationComposer {
   writer: StringWriter
   prefix: string
@@ -76,30 +78,10 @@ class TypescriptDeclarationComposer {
   }
 }
 
-const TypeNumToTypeString: {[key: number]: string} = {};
-// TypeNumToTypeString[1] = "number"; // TYPE_DOUBLE
-// TypeNumToTypeString[2] = "number"; // TYPE_FLOAT
-// TypeNumToTypeString[3] = "number"; // TYPE_INT64
-// TypeNumToTypeString[4] = "number"; // TYPE_UINT64
-TypeNumToTypeString[5] = "number"; // TYPE_INT32
-// TypeNumToTypeString[6] = "number"; // TYPE_FIXED64
-// TypeNumToTypeString[7] = "number"; // TYPE_FIXED32
-// TypeNumToTypeString[8] = "boolean"; // TYPE_BOOL
-TypeNumToTypeString[9] = "string"; // TYPE_STRING
-// TypeNumToTypeString[10] = "Object"; // TYPE_GROUP
-// TypeNumToTypeString[MESSAGE_TYPE] = "Object"; // TYPE_MESSAGE - Length-delimited aggregate.
-// TypeNumToTypeString[BYTES_TYPE] = "Uint8Array"; // TYPE_BYTES
-// TypeNumToTypeString[13] = "number"; // TYPE_UINT32
-// TypeNumToTypeString[ENUM_TYPE] = "number"; // TYPE_ENUM
-// TypeNumToTypeString[15] = "number"; // TYPE_SFIXED32
-// TypeNumToTypeString[16] = "number"; // TYPE_SFIXED64
-// TypeNumToTypeString[17] = "number"; // TYPE_SINT32 - Uses ZigZag encoding.
-// TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
-
-function tsTypeForProtoTypeNum(protoTypeNumber: number) {
-  const result = TypeNumToTypeString[protoTypeNumber]!
-}
-
+/** Core operation. Transforms protoc input, a series of proto files, into the
+ * output, which is a single file containing all gen'd ts interfaces, based 
+ * on the proto defs.
+ */
 export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   const tsComposer = new TypescriptDeclarationComposer()
 
@@ -128,6 +110,7 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   return codeGenResponse
 }
 
+/** Given a proto message type, write the corresponding ts interface */
 function transformProtoMessageTypeToTypescriptInterface(tsComposer: TypescriptDeclarationComposer, protoMessageType: DescriptorProto) {
   tsComposer.startInterface(protoMessageType.getName());
   const tsComposerForFields = tsComposer.withIndent();
@@ -137,6 +120,30 @@ function transformProtoMessageTypeToTypescriptInterface(tsComposer: TypescriptDe
   tsComposer.endBlock();
 }
 
+const BYTES_TYPE = 12;
+
+// directly lifted from ts-protoc-gen
+const TypeNumToTypeString: {[key: number]: string} = {};
+TypeNumToTypeString[1] = "number"; // TYPE_DOUBLE
+TypeNumToTypeString[2] = "number"; // TYPE_FLOAT
+TypeNumToTypeString[3] = "number"; // TYPE_INT64
+TypeNumToTypeString[4] = "number"; // TYPE_UINT64
+TypeNumToTypeString[5] = "number"; // TYPE_INT32
+TypeNumToTypeString[6] = "number"; // TYPE_FIXED64
+TypeNumToTypeString[7] = "number"; // TYPE_FIXED32
+TypeNumToTypeString[8] = "boolean"; // TYPE_BOOL
+TypeNumToTypeString[9] = "string"; // TYPE_STRING
+// TypeNumToTypeString[10] = "Object"; // TYPE_GROUP
+// TypeNumToTypeString[MESSAGE_TYPE] = "Object"; // TYPE_MESSAGE - Length-delimited aggregate.
+TypeNumToTypeString[BYTES_TYPE] = "Uint8Array"; // TYPE_BYTES
+TypeNumToTypeString[13] = "number"; // TYPE_UINT32
+// TypeNumToTypeString[ENUM_TYPE] = "number"; // TYPE_ENUM
+TypeNumToTypeString[15] = "number"; // TYPE_SFIXED32
+TypeNumToTypeString[16] = "number"; // TYPE_SFIXED64
+TypeNumToTypeString[17] = "number"; // TYPE_SINT32 - Uses ZigZag encoding.
+TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
+
+/** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoFieldToTypescriptInterfaceMember(tsComposer: TypescriptDeclarationComposer, protoField: FieldDescriptorProto) {
   if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE) {
     let tsTypeName = protoField.getTypeName()
@@ -147,6 +154,8 @@ function transformProtoFieldToTypescriptInterfaceMember(tsComposer: TypescriptDe
       tsTypeName = tsTypeName.slice(1)
     }
     tsComposer.member(protoField.getName(), tsTypeName);
+  } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
+    tsComposer.member(protoField.getName(), "Uint8Array | string");
   } else {
     const tsType = TypeNumToTypeString[protoField.getType()];
     if (tsType == null) {
@@ -156,6 +165,10 @@ function transformProtoFieldToTypescriptInterfaceMember(tsComposer: TypescriptDe
   }
 }
 
+/** Top-level function, that deserializes CodeGeneratorRequest's,
+ * transforms them to CodeGeneratorResponse's, serializes those
+ * and writes them to the stdout stream.
+ */
 export function transformStream(stdin: NodeJS.ReadStream, stdout: NodeJS.WriteStream) {
   stdin.on("readable", function () {
     try {
