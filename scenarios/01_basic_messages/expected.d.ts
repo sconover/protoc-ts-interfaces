@@ -1,14 +1,27 @@
 declare namespace plain_email {
 
+  const enum AttachmentType {
+    NONE = 0,
+    PDF = 1,
+    ZIP = 2
+  }
+  
+  const enum EncryptionType {
+    NONE = 0,
+    ENCRYPTED = 1
+  }
+  
   interface Identity {
     name: string
     email: string
   }
   
   interface PlainEmail {
-    from: plain_email.Identity
-    to: plain_email.Identity
+    from: Identity
+    to: Identity
     body_text: string
+    attach_type: AttachmentType
+    encrypt_type: EncryptionType
   }
 
 }

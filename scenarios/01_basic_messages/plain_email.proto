@@ -6,8 +6,22 @@ message Identity {
   string email = 2;
 }
 
+enum EncryptionType {
+  NONE = 0;
+  ENCRYPTED = 1;
+}
+
 message PlainEmail {
+
+  enum AttachmentType {
+    NONE = 0;
+    PDF = 1;
+    ZIP = 2;
+  }
+
   Identity from = 1;
   Identity to = 2;
   string body_text = 3;
+  AttachmentType attach_type = 4;
+  EncryptionType encrypt_type = 5;
 }
