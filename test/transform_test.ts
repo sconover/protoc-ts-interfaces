@@ -16,11 +16,6 @@ function extractEnumInfo(node: ts.Node): any {
 }
 
 function extractInterfaceInfo(node: ts.Node): any {
-// } else if (typeName == "MethodSignature") {
-//   console.log("YYY")
-//   let methodName = (<ts.Identifier>(<ts.MethodSignature>m).name).escapedText
-//   return [methodName]
-
   const interfaceNode = (<ts.InterfaceDeclaration>node)
   const interfaceName = (<ts.Identifier>interfaceNode.name).escapedText
   const memberInfo = interfaceNode.members.map(m => {
@@ -244,6 +239,23 @@ suite("transform", () => {
         .build())
 
     assert.equal("single_level_package", (<ts.NamespaceDeclaration> childNode(codeGenResponse, 0)).name.text)
+  })
+
+  test("convert a complex proto package name to a set of nested typescript namespaces", () => {
+    const codeGenResponse = transform(
+      new CodeGeneratorRequestBuilder()
+        .addProtoFile(
+          new FileDescriptorProtoBuilder()
+            .setPackageName("multi.level.package_example")
+          .build())
+        .build())
+
+    const topLevel: ts.NamespaceDeclaration = (<ts.NamespaceDeclaration> childNode(codeGenResponse, 0))
+    assert.equal("multi", topLevel.name.text)
+    const secondLevel = (<ts.ModuleDeclaration>(<ts.ModuleBlock> topLevel.body).statements[0])
+    assert.equal("level", secondLevel.name.text)
+    const thirdLevel = (<ts.ModuleDeclaration>(<ts.ModuleBlock> secondLevel.body).statements[0])
+    assert.equal("package_example", thirdLevel.name.text)
   })
 
   test("convert an empty message to an empty ts interface", () => {

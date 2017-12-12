@@ -37,9 +37,18 @@ class TypescriptDeclarationComposer {
     }
   }
 
-  startNamespace(name: string): TypescriptDeclarationComposer {
+  startDeclaredNamespace(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
     this.appendLine(`declare namespace ${name} {`)
+    this.appendLine("")
+    this.namespace = name
+    this.alreadyStarted = true
+    return this
+  }
+
+  startPlainNamespace(name: string): TypescriptDeclarationComposer {
+    this.appendSeparatorLineIfAlreadyStarted()
+    this.appendLine(`namespace ${name} {`)
     this.appendLine("")
     this.namespace = name
     this.alreadyStarted = true
@@ -236,10 +245,21 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
     let tsInnerComposer = null
     let currentPackagePrefix = null
     let fullyQualifiedToShorthandTypeMap = {}
+    const indentedComposers: Array<TypescriptDeclarationComposer> = new Array()
     if (protoFile.hasPackage()) {
-      tsComposer.startNamespace(protoFile.getPackage())
+      const packageParts = protoFile.getPackage().split(".")
+      packageParts.forEach((packagePart, index) => {
+        if (index == 0) {
+          tsComposer.startDeclaredNamespace(packagePart)
+          indentedComposers.push(tsComposer)
+          tsInnerComposer = tsComposer.withIndent()
+        } else {
+          tsInnerComposer.startPlainNamespace(packagePart)
+          indentedComposers.push(tsInnerComposer)
+          tsInnerComposer = tsInnerComposer.withIndent()
+        }
+      })
       currentPackagePrefix = protoFile.getPackage() + "."
-      tsInnerComposer = tsComposer.withIndent()
     } else {
       tsInnerComposer = tsComposer
       currentPackagePrefix = ""
@@ -267,8 +287,8 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
     for (let protoService of protoFile.getServiceList()) {
       transformProtoServiceToTypescriptInterface(tsInnerComposer, protoService, fullyQualifiedToShorthandTypeMap);
     }
-    if (protoFile.hasPackage()) {
-      tsComposer.endBlock()
+    for (let i = 0; i < indentedComposers.length; i++){
+      indentedComposers[indentedComposers.length - i - 1].endBlock()
     }
   }
 

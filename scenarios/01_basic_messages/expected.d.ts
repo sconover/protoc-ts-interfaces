@@ -26,11 +26,19 @@ declare namespace plain_email {
 
 }
 
-declare namespace html_email {
+declare namespace some {
 
-  interface HtmlEmail {
-    plain_email: plain_email.PlainEmail
-    body_html: string
+  namespace nested {
+  
+    namespace html_email {
+    
+      interface HtmlEmail {
+        plain_email: plain_email.PlainEmail
+        body_html: string
+      }
+    
+    }
+  
   }
 
 }

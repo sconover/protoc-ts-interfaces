@@ -1,5 +1,5 @@
 syntax = "proto3";
-package html_email;
+package some.nested.html_email;
 
 import "scenarios/01_basic_messages/plain_email.proto";
 
