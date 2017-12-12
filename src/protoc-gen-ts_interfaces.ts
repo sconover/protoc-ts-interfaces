@@ -242,9 +242,9 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   const tsComposer = new TypescriptDeclarationComposer()
 
   for (let protoFile of input.getProtoFileList()) {
-    let tsInnerComposer = null
+    let tsInnerComposer: TypescriptDeclarationComposer
     let currentPackagePrefix = null
-    let fullyQualifiedToShorthandTypeMap = {}
+    let fullyQualifiedToShorthandTypeMap: any = {}
     const indentedComposers: Array<TypescriptDeclarationComposer> = new Array()
     if (protoFile.hasPackage()) {
       const packageParts = protoFile.getPackage().split(".")
@@ -264,13 +264,13 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
       tsInnerComposer = tsComposer
       currentPackagePrefix = ""
     }
-    const nameSet = {}
+    const nameSet: any = {}
     for (let protoMessageType of protoFile.getMessageTypeList()) {
       // NOTE: this shifts inside-message proto enums to sibling-to-message ts enums.
       // TODO: fail if enum names collide because of this.
       for (let protoEnumType of protoMessageType.getEnumTypeList()) {
         checkNameNotDefined(protoEnumType.getName(), nameSet)
-        transformProtoEnumTypeToTypescriptInterface(tsInnerComposer, protoEnumType, fullyQualifiedToShorthandTypeMap);
+        transformProtoEnumTypeToTypescriptInterface(tsInnerComposer!, protoEnumType, fullyQualifiedToShorthandTypeMap);
 
         // this says, make any fully-qualified references to proto enums defined within proto messages,
         // appear to be namespace-level const-enums in ts
