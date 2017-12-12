@@ -1,4 +1,5 @@
-import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto, DescriptorProto, FieldDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
+import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto, 
+        DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
 
 export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "generated.d.ts"
@@ -72,6 +73,11 @@ class TypescriptDeclarationComposer {
     return this
   }
 
+  rpcMethodSignature(methodName: string, requestTypeName: string, responseTypeName: string): TypescriptDeclarationComposer {
+    this.appendLine(`${methodName}(request: ${requestTypeName}): Promise<${responseTypeName}>`)
+    return this
+  }
+
   enumValue(enumName: string, enumNumber: number): TypescriptDeclarationComposer {
     this.appendLine(`${enumName} = ${enumNumber},`) // there's a comma
     return this;
@@ -113,7 +119,7 @@ function transformProtoEnumTypeToTypescriptInterface(
   tsComposer.endBlock();
 }
 
-/** Given a proto message type, write the corresponding ts interface */
+/** Given a proto message type, write the corresponding ts interface (with members corresponding to proto fields) */
 function transformProtoMessageTypeToTypescriptInterface(
   tsComposer: TypescriptDeclarationComposer, 
   protoMessageType: DescriptorProto,
@@ -122,6 +128,19 @@ function transformProtoMessageTypeToTypescriptInterface(
   const tsComposerForFields = tsComposer.withIndent();
   for (let protoField of protoMessageType.getFieldList()) {
     transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField, fullyQualifiedToShorthandTypeMap);
+  }
+  tsComposer.endBlock();
+}
+
+/** Given a proto service, write the corresponding ts interface (with method signatures corresponding to rpc's) */
+function transformProtoServiceToTypescriptInterface(
+  tsComposer: TypescriptDeclarationComposer, 
+  protoService: ServiceDescriptorProto,
+  fullyQualifiedToShorthandTypeMap: any) {
+  tsComposer.startInterface(protoService.getName());
+  const tsComposerForRpcMethods = tsComposer.withIndent();
+  for (let protoRpcMethod of protoService.getMethodList()) {
+    transformProtoRpcMethodToTypescriptInterfaceMethodSignature(tsComposerForRpcMethods, protoRpcMethod, fullyQualifiedToShorthandTypeMap);
   }
   tsComposer.endBlock();
 }
@@ -154,14 +173,7 @@ function transformProtoFieldToTypescriptInterfaceMember(
   fullyQualifiedToShorthandTypeMap: any) {
   if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE || 
       protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
-    let tsTypeName = protoField.getTypeName()
-    if (tsTypeName.indexOf(".")==0) {
-      // Slicing the leading dot off the fully qualified type name
-      // is what they do in ts-protoc-gen. I suspect we're all missing something,
-      // but, moving on...
-      tsTypeName = tsTypeName.slice(1)
-    }
-    tsComposer.member(protoField.getName(), resolveTypeNameShorthand(tsTypeName, fullyQualifiedToShorthandTypeMap));
+    tsComposer.member(protoField.getName(), toTsTypeName(protoField.getTypeName(), fullyQualifiedToShorthandTypeMap));
   } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
     tsComposer.member(protoField.getName(), "Uint8Array | string");
   } else {
@@ -171,6 +183,17 @@ function transformProtoFieldToTypescriptInterfaceMember(
     }
     tsComposer.member(protoField.getName(), tsType);
   }
+}
+
+/** Given a proto field, write the corresponding member of a ts interface */
+function transformProtoRpcMethodToTypescriptInterfaceMethodSignature(
+  tsComposer: TypescriptDeclarationComposer, 
+  protoRpcMethod: MethodDescriptorProto,
+  fullyQualifiedToShorthandTypeMap: any) {
+  tsComposer.rpcMethodSignature(
+    lowerCaseFirstLetter(protoRpcMethod.getName()), 
+    toTsTypeName(protoRpcMethod.getInputType(), fullyQualifiedToShorthandTypeMap), 
+    toTsTypeName(protoRpcMethod.getOutputType(), fullyQualifiedToShorthandTypeMap))
 }
 
 /** Given a proto enum value, write the corresponding ts enum value */
@@ -183,12 +206,23 @@ function transformProtoEnumValueToLastTypescriptEnumValue(tsComposer: Typescript
   tsComposer.lastEnumValue(protoEnumValue.getName(), protoEnumValue.getNumber());
 }
 
-function resolveTypeNameShorthand(protoTypeName: string, fullyQualifiedToShorthandTypeMap: {}): string {
-  if (fullyQualifiedToShorthandTypeMap[protoTypeName] != null) {
-    return fullyQualifiedToShorthandTypeMap[protoTypeName]
-  } else {
-    return protoTypeName
+function toTsTypeName(protoTypeName: string, fullyQualifiedToShorthandTypeMap: any): string {
+  let tsTypeName = protoTypeName
+  if (tsTypeName.indexOf(".")==0) {
+    // Slicing the leading dot off the fully qualified type name
+    // is what they do in ts-protoc-gen. I suspect we're all missing something,
+    // but, moving on...
+    tsTypeName = tsTypeName.slice(1)
   }
+  if (fullyQualifiedToShorthandTypeMap[tsTypeName] != null) {
+    return fullyQualifiedToShorthandTypeMap[tsTypeName]
+  } else {
+    return tsTypeName
+  }
+}
+
+function lowerCaseFirstLetter(str: string): string {
+  return str.charAt(0).toLowerCase() + str.slice(1)
 }
 
 /** Core operation. Transforms protoc input, a series of proto files, into the
@@ -199,22 +233,22 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   const tsComposer = new TypescriptDeclarationComposer()
 
   for (let protoFile of input.getProtoFileList()) {
-    let tsComposerForMessages = null
+    let tsInnerComposer = null
     let currentPackagePrefix = null
     let fullyQualifiedToShorthandTypeMap = {}
     if (protoFile.hasPackage()) {
       tsComposer.startNamespace(protoFile.getPackage())
       currentPackagePrefix = protoFile.getPackage() + "."
-      tsComposerForMessages = tsComposer.withIndent()
+      tsInnerComposer = tsComposer.withIndent()
     } else {
-      tsComposerForMessages = tsComposer
+      tsInnerComposer = tsComposer
       currentPackagePrefix = ""
     }
     for (let protoMessageType of protoFile.getMessageTypeList()) {
       // NOTE: this shifts inside-message proto enums to sibling-to-message ts enums.
       // TODO: fail if enum names collide because of this.
       for (let protoEnumType of protoMessageType.getEnumTypeList()) {
-        transformProtoEnumTypeToTypescriptInterface(tsComposerForMessages, protoEnumType, fullyQualifiedToShorthandTypeMap);
+        transformProtoEnumTypeToTypescriptInterface(tsInnerComposer, protoEnumType, fullyQualifiedToShorthandTypeMap);
 
         // this says, make any fully-qualified references to proto enums defined within proto messages,
         // appear to be namespace-level const-enums in ts
@@ -223,12 +257,15 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
       }
     }
     for (let protoEnumType of protoFile.getEnumTypeList()) {
-      transformProtoEnumTypeToTypescriptInterface(tsComposerForMessages, protoEnumType, fullyQualifiedToShorthandTypeMap);
+      transformProtoEnumTypeToTypescriptInterface(tsInnerComposer, protoEnumType, fullyQualifiedToShorthandTypeMap);
       fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoEnumType.getName()] = protoEnumType.getName()
     }
     for (let protoMessageType of protoFile.getMessageTypeList()) {
-      transformProtoMessageTypeToTypescriptInterface(tsComposerForMessages, protoMessageType, fullyQualifiedToShorthandTypeMap);
+      transformProtoMessageTypeToTypescriptInterface(tsInnerComposer, protoMessageType, fullyQualifiedToShorthandTypeMap);
       fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoMessageType.getName()] = protoMessageType.getName()
+    }
+    for (let protoService of protoFile.getServiceList()) {
+      transformProtoServiceToTypescriptInterface(tsInnerComposer, protoService, fullyQualifiedToShorthandTypeMap);
     }
     if (protoFile.hasPackage()) {
       tsComposer.endBlock()
