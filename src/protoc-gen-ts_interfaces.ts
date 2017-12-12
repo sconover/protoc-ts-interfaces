@@ -264,28 +264,37 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
       tsInnerComposer = tsComposer
       currentPackagePrefix = ""
     }
+    const nameSet = {}
     for (let protoMessageType of protoFile.getMessageTypeList()) {
       // NOTE: this shifts inside-message proto enums to sibling-to-message ts enums.
       // TODO: fail if enum names collide because of this.
       for (let protoEnumType of protoMessageType.getEnumTypeList()) {
+        checkNameNotDefined(protoEnumType.getName(), nameSet)
         transformProtoEnumTypeToTypescriptInterface(tsInnerComposer, protoEnumType, fullyQualifiedToShorthandTypeMap);
 
         // this says, make any fully-qualified references to proto enums defined within proto messages,
         // appear to be namespace-level const-enums in ts
         fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoMessageType.getName() + "." + protoEnumType.getName()] = 
           protoEnumType.getName()
+        nameSet[protoEnumType.getName()] = true
       }
     }
     for (let protoEnumType of protoFile.getEnumTypeList()) {
+      checkNameNotDefined(protoEnumType.getName(), nameSet)
       transformProtoEnumTypeToTypescriptInterface(tsInnerComposer, protoEnumType, fullyQualifiedToShorthandTypeMap);
       fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoEnumType.getName()] = protoEnumType.getName()
+      nameSet[protoEnumType.getName()] = true
     }
     for (let protoMessageType of protoFile.getMessageTypeList()) {
+      checkNameNotDefined(protoMessageType.getName(), nameSet)
       transformProtoMessageTypeToTypescriptInterface(tsInnerComposer, protoMessageType, fullyQualifiedToShorthandTypeMap);
       fullyQualifiedToShorthandTypeMap[currentPackagePrefix + protoMessageType.getName()] = protoMessageType.getName()
+      nameSet[protoMessageType.getName()] = true
     }
     for (let protoService of protoFile.getServiceList()) {
+      checkNameNotDefined(protoService.getName(), nameSet)
       transformProtoServiceToTypescriptInterface(tsInnerComposer, protoService, fullyQualifiedToShorthandTypeMap);
+      nameSet[protoService.getName()] = true
     }
     for (let i = 0; i < indentedComposers.length; i++){
       indentedComposers[indentedComposers.length - i - 1].endBlock()
@@ -299,6 +308,12 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   codeGenResponse.addFile(outTsFile)
       
   return codeGenResponse
+}
+
+function checkNameNotDefined(name: string, nameSet: any) {
+  if (nameSet[name]!=null) {
+    throw new Error("name already defined, refusing to continue: " + name)
+  }
 }
 
 /** Top-level function, that deserializes CodeGeneratorRequest's,

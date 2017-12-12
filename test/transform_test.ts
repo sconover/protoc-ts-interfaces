@@ -495,5 +495,27 @@ suite("transform", () => {
       extractInterfaceInfo(childNode(codeGenResponse, 2)))
   })
 
+  test("the same name in the same namespace results in a sanity-checking error " +
+       "(rather than silently and erroneously continuing)", () => {
+    try{
+      const codeGenResponse = transform(
+        new CodeGeneratorRequestBuilder()
+          .addProtoFile(
+            new FileDescriptorProtoBuilder()
+              .addMessageType(
+                new MessageTypeProtoBuilder()
+                  .addEnumType(
+                    new EnumProtoBuilder()
+                      .setName("FortuneCookie")
+                      .build())
+                  .setName("FortuneCookie")
+                  .build())
+            .build())
+          .build())
+      assert.fail()
+    } catch (err) {
+    }
+  })
+
   //TODO: detect naming collisions and make sure good errors are raised, instead of silently overwriting
 })
