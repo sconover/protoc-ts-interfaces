@@ -1,21 +1,24 @@
 {
-  "name": "protoc-ts-interface",
+  "name": "protoc-ts-interfaces",
   "version": "0.0.1",
-  "description": "protoc plugin that generates typescript interfaces from a protobuf schema",
+  "description": "[WIP/alpha] protoc plugin that generates typescript interfaces from a protobuf schema",
   "main": "index.js",
+  "bin": {
+    "protoc-gen-ts_interfaces": "bin/protoc-gen-ts_interfaces.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sconover/protoc-ts-interface.git"
+    "url": "git+https://github.com/sconover/protoc-ts-interfaces.git"
   },
   "author": "Steve Conover",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/sconover/protoc-ts-interface/issues"
+    "url": "https://github.com/sconover/protoc-ts-interfaces/issues"
   },
-  "homepage": "https://github.com/sconover/protoc-ts-interface#readme",
+  "homepage": "https://github.com/sconover/protoc-ts-interfaces#readme",
   "dependencies": {
     "google-protobuf": "^3.2.7"
   },
