@@ -10,3 +10,5 @@ ts_library(
     # deps = ["//:node_modules"],
     # module_name = "sm",
 )
+
+exports_files(["protoc-gen-ts_interfaces.ts"])

@@ -2,7 +2,7 @@ import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto,
         DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
 
-export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "generated.d.ts"
+export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "proto.generated.d.ts"
 
 /** Accumulates ts interface file content */
 class StringWriter {
