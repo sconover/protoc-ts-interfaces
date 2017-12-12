@@ -4,7 +4,8 @@ const assert: any = require("assert")
 
 import {transform} from "../src/protoc-gen-ts_interfaces";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb"
-import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb"
+import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto, EnumDescriptorProto, 
+        EnumValueDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb"
 import * as ts from "typescript"
 
 function extractEnumInfo(node: ts.Node): any {
@@ -15,19 +16,35 @@ function extractEnumInfo(node: ts.Node): any {
 }
 
 function extractInterfaceInfo(node: ts.Node): any {
+// } else if (typeName == "MethodSignature") {
+//   console.log("YYY")
+//   let methodName = (<ts.Identifier>(<ts.MethodSignature>m).name).escapedText
+//   return [methodName]
+
   const interfaceNode = (<ts.InterfaceDeclaration>node)
   const interfaceName = (<ts.Identifier>interfaceNode.name).escapedText
   const memberInfo = interfaceNode.members.map(m => {
-    const typeName = ts.SyntaxKind[(<ts.PropertySignature>m).type.kind]
-    if (typeName == "TypeReference") {
-      let typeName = (<ts.Identifier>(<ts.TypeReferenceNode> (<ts.PropertySignature>m).type).typeName).escapedText
-      if (typeName==null) {
-        // there might be some namespacing, for now just use this crappy heursitic to get the type name
-        typeName = (<ts.Identifier>childNodes((<ts.TypeReferenceNode> (<ts.PropertySignature>m).type).typeName)[1]).escapedText
+    const memberKind = ts.SyntaxKind[m.kind]
+    if (memberKind == "MethodSignature") {
+      const methodSignature = (<ts.MethodSignature>m)
+      const methodName = (<ts.Identifier>methodSignature.name).escapedText
+      const parameterTypeNames = methodSignature.parameters.map(p => (<ts.Identifier>(<ts.TypeReferenceNode> p.type).typeName).escapedText)
+      const returnTypeName = (<ts.Identifier>(<ts.TypeReferenceNode>methodSignature.type).typeName).escapedText
+      return [methodName, parameterTypeNames, returnTypeName]
+    } else if (memberKind == "PropertySignature") {
+      const typeName = ts.SyntaxKind[(<ts.PropertySignature>m).type.kind]
+      if (typeName == "TypeReference") {
+        let typeName = (<ts.Identifier>(<ts.TypeReferenceNode> (<ts.PropertySignature>m).type).typeName).escapedText
+        if (typeName==null) {
+          // there might be some namespacing, for now just use this crappy heursitic to get the type name
+          typeName = (<ts.Identifier>childNodes((<ts.TypeReferenceNode> (<ts.PropertySignature>m).type).typeName)[1]).escapedText
+        }
+        return [(<ts.Identifier>m.name).escapedText, typeName]
+      } else {
+        return [(<ts.Identifier>m.name).escapedText, ts.SyntaxKind[(<ts.PropertySignature>m).type.kind]]
       }
-      return [(<ts.Identifier>m.name).escapedText, typeName]
     } else {
-      return [(<ts.Identifier>m.name).escapedText, ts.SyntaxKind[(<ts.PropertySignature>m).type.kind]]
+      throw new Error("unsupported member kind: " + memberKind)
     }
   })
   return [interfaceName, memberInfo]
@@ -110,11 +127,6 @@ class MessageTypeProtoBuilder {
     protoField.setName(name)
     protoField.setType(FieldDescriptorProto.Type.TYPE_ENUM)
     protoField.setTypeName(enumType.getName())
-    // if (packageName == null) {
-    //   fieldDescriptorProto.setTypeName(messageType.getName())
-    // } else {
-    //   fieldDescriptorProto.setTypeName("." + packageName + "." + messageType.getName())
-    // }
     this.protoFields.push(protoField)
     return this
   }
@@ -132,12 +144,46 @@ class MessageTypeProtoBuilder {
   }
 }
 
+class ServiceProtoBuilder {
+  name: string
+  protoRpcMethods: Array<MethodDescriptorProto> = new Array()
+
+  setName(name: string): ServiceProtoBuilder {
+    this.name = name
+    return this
+  }
+
+  addRpcMethod(name: string, requestType: DescriptorProto, responseType: DescriptorProto): ServiceProtoBuilder {
+    const protoRpcMethod = new MethodDescriptorProto()
+    protoRpcMethod.setName(name)
+    protoRpcMethod.setInputType(requestType.getName())
+    protoRpcMethod.setOutputType(responseType.getName())
+    this.protoRpcMethods.push(protoRpcMethod)
+    return this
+  }
+
+  build(): ServiceDescriptorProto {
+    const protoService = new ServiceDescriptorProto()
+    protoService.setName(this.name)
+    for (let r of this.protoRpcMethods) {
+      protoService.addMethod(r)
+    }
+    return protoService
+  }
+}
+
 class FileDescriptorProtoBuilder {
   packageName: string
   messageTypes: Array<DescriptorProto> = new Array()
+  services: Array<ServiceDescriptorProto> = new Array()
 
-  addMessageType(descriptorProto: DescriptorProto): FileDescriptorProtoBuilder {
-    this.messageTypes.push(descriptorProto)
+  addMessageType(protoMessageType: DescriptorProto): FileDescriptorProtoBuilder {
+    this.messageTypes.push(protoMessageType)
+    return this
+  }
+
+  addService(protoService: ServiceDescriptorProto): FileDescriptorProtoBuilder {
+    this.services.push(protoService)
     return this
   }
 
@@ -153,6 +199,9 @@ class FileDescriptorProtoBuilder {
     }
     for (let m of this.messageTypes) {
       protoFile.addMessageType(m)
+    }
+    for (let s of this.services) {
+      protoFile.addService(s)
     }
     return protoFile
   }
@@ -391,6 +440,47 @@ suite("transform", () => {
         ["fortune_content", "StringKeyword"], 
         ["fortune_kind", "FortuneKind"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
+  })
+
+  test("convert a proto service to a ts interface containing method signatures that take " +
+       "a request interface and return a promise to produce a response", () => {
+    const requestType: DescriptorProto = new MessageTypeProtoBuilder()
+      .setName("GetRandomFortuneRequest")
+      .build();
+
+    const responseType: DescriptorProto = new MessageTypeProtoBuilder()
+      .setName("GetRandomFortuneResponse")
+      .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
+      .build();
+
+    const codeGenResponse = transform(
+      new CodeGeneratorRequestBuilder()
+        .addProtoFile(
+          new FileDescriptorProtoBuilder()
+            .addMessageType(requestType)
+            .addMessageType(responseType)
+            .addService(
+              new ServiceProtoBuilder()
+                .setName("FortuneService")
+                .addRpcMethod("GetRandomFortune", requestType, responseType)
+                .build())
+          .build())
+        .build())
+
+    assert.deepEqual(
+      ["GetRandomFortuneRequest", []], 
+      extractInterfaceInfo(childNode(codeGenResponse, 0)))
+
+    assert.deepEqual(
+      ["GetRandomFortuneResponse", [
+        ["fortune_content", "StringKeyword"]]], 
+      extractInterfaceInfo(childNode(codeGenResponse, 1)))
+
+    assert.deepEqual(
+      ["FortuneService", [
+        ["getRandomFortune", ["GetRandomFortuneRequest"], "Promise"]
+      ]], 
+      extractInterfaceInfo(childNode(codeGenResponse, 2)))
   })
 
   //TODO: detect naming collisions and make sure good errors are raised, instead of silently overwriting

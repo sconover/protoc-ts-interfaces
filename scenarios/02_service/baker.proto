@@ -1,0 +1,20 @@
+syntax = "proto3";
+package baker;
+
+message PleaseBakeCakeRequest {
+  int32 size = 1;
+}
+
+enum Deliciousness {
+  ITS_OK = 0;
+  QUITE_DELICIOUS_SIR = 1;
+}  
+
+message PleaseBakeCakeResponse {
+  Deliciousness deliciousness = 1;
+}
+
+service BakerService {
+  rpc PleaseBakeCake (PleaseBakeCakeRequest) returns (PleaseBakeCakeResponse) {
+  }
+}  
