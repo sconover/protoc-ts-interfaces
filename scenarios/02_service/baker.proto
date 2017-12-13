@@ -18,3 +18,4 @@ service BakerService {
   rpc PleaseBakeCake (PleaseBakeCakeRequest) returns (PleaseBakeCakeResponse) {
   }
 }  
+

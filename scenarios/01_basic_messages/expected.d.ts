@@ -1,14 +1,26 @@
 declare namespace plain_email {
 
-  const enum AttachmentType {
-    NONE = 0,
-    PDF = 1,
-    ZIP = 2
-  }
-  
   const enum EncryptionType {
     NONE = 0,
     ENCRYPTED = 1
+  }
+  
+  module Identity {
+  
+    module SecretKey {
+    
+      const enum KeyType {
+        PGP = 0,
+        OTHER = 1
+      }
+    
+    }
+    
+    interface SecretKey {
+      key_type: plain_email.Identity.SecretKey.KeyType
+      key: string
+    }
+  
   }
   
   interface Identity {
@@ -16,12 +28,22 @@ declare namespace plain_email {
     email: string
   }
   
+  module PlainEmail {
+  
+    const enum AttachmentType {
+      NONE = 0,
+      PDF = 1,
+      ZIP = 2
+    }
+  
+  }
+  
   interface PlainEmail {
-    from: Identity
-    to: Identity
+    from: plain_email.Identity
+    to: plain_email.Identity
     body_text: string
-    attach_type: AttachmentType
-    encrypt_type: EncryptionType
+    attach_type: plain_email.PlainEmail.AttachmentType
+    encrypt_type: plain_email.EncryptionType
   }
 
 }

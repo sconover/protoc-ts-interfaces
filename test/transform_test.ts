@@ -84,6 +84,7 @@ class EnumProtoBuilder {
 class MessageTypeProtoBuilder {
   name: string
   protoEnumTypes: Array<EnumDescriptorProto> = new Array()
+  protoMessageTypes: Array<DescriptorProto> = new Array()
   protoFields: Array<FieldDescriptorProto> = new Array()
 
   setName(name: string): MessageTypeProtoBuilder {
@@ -93,6 +94,11 @@ class MessageTypeProtoBuilder {
 
   addEnumType(protoEnum: EnumDescriptorProto): MessageTypeProtoBuilder {
     this.protoEnumTypes.push(protoEnum)
+    return this
+  }
+
+  addMessageType(protoMessageType: DescriptorProto): MessageTypeProtoBuilder {
+    this.protoMessageTypes.push(protoMessageType)
     return this
   }
 
@@ -131,6 +137,9 @@ class MessageTypeProtoBuilder {
     protoMessageType.setName(this.name)
     for (let e of this.protoEnumTypes) {
       protoMessageType.addEnumType(e)
+    }
+    for (let e of this.protoMessageTypes) {
+      protoMessageType.addNestedType(e)
     }
     for (let f of this.protoFields) {
       protoMessageType.addField(f)
@@ -419,7 +428,7 @@ suite("transform", () => {
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
   })
 
-  test("convert an enum nested in a message to a typescript const enum that is sibling to the interface definition", () => {
+  test("convert an enum nested in a message to a typescript const enum that within a module named the same as the message/interface", () => {
     const protoFortuneKindEnum = 
       new EnumProtoBuilder()
         .setName("FortuneKind")
@@ -441,11 +450,13 @@ suite("transform", () => {
           .build())
         .build())
 
+    const moduleDeclaration = (<ts.ModuleDeclaration>childNode(codeGenResponse, 0))
+    assert.equal("FortuneCookie", (<ts.Identifier>moduleDeclaration.name).escapedText)
     assert.deepEqual(
       ["FortuneKind", [
         "A_WISE_SOUNDING_BUT_ACTUALLY_CONFUSED_STATEMENT", 
         "SPECIFIC_PREDICTION_OF_WHAT_WILL_HAPPEN"]], 
-      extractEnumInfo(childNode(codeGenResponse, 0)))
+        extractEnumInfo((<ts.ModuleBlock>moduleDeclaration.body).statements[0]))
 
     assert.deepEqual(
       ["FortuneCookie", [
@@ -515,6 +526,29 @@ suite("transform", () => {
       assert.fail()
     } catch (err) {
     }
+  })
+
+  test("a message within a message, generates an interface that goes in a module named after the top-level message", () => {
+    const codeGenResponse = transform(
+      new CodeGeneratorRequestBuilder()
+        .addProtoFile(
+          new FileDescriptorProtoBuilder()
+            .addMessageType(
+              new MessageTypeProtoBuilder()
+                .setName("TopLevel")
+                .addMessageType(
+                  new MessageTypeProtoBuilder()
+                    .setName("Nested")
+                    .build())
+                .build())
+          .build())
+        .build())
+
+    const moduleDeclaration = (<ts.ModuleDeclaration>childNode(codeGenResponse, 0))
+    assert.equal("TopLevel", (<ts.Identifier>moduleDeclaration.name).escapedText)
+    assert.deepEqual(
+      ["Nested", []], 
+        extractInterfaceInfo((<ts.ModuleBlock>moduleDeclaration.body).statements[0]))
   })
 
   //TODO: detect naming collisions and make sure good errors are raised, instead of silently overwriting
