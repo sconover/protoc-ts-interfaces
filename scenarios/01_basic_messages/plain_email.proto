@@ -4,6 +4,16 @@ package plain_email;
 message Identity {
   string name = 1;
   string email = 2;
+
+  message SecretKey {
+    enum KeyType {
+      PGP = 0;
+      OTHER = 1;
+    }
+
+    KeyType key_type = 1;
+    string key = 2;
+  }
 }
 
 enum EncryptionType {
@@ -25,3 +35,4 @@ message PlainEmail {
   AttachmentType attach_type = 4;
   EncryptionType encrypt_type = 5;
 }
+

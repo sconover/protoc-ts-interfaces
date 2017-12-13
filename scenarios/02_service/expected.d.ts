@@ -10,11 +10,11 @@ declare namespace baker {
   }
   
   interface PleaseBakeCakeResponse {
-    deliciousness: Deliciousness
+    deliciousness: baker.Deliciousness
   }
   
   interface BakerService {
-    pleaseBakeCake(request: PleaseBakeCakeRequest): Promise<PleaseBakeCakeResponse>
+    pleaseBakeCake(request: baker.PleaseBakeCakeRequest): Promise<baker.PleaseBakeCakeResponse>
   }
 
 }
