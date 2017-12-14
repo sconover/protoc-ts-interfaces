@@ -1,4 +1,4 @@
-declare namespace baker {
+export namespace baker {
 
   const enum Deliciousness {
     ITS_OK = 0,

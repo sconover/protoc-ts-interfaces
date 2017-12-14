@@ -37,9 +37,9 @@ class TypescriptDeclarationComposer {
     }
   }
 
-  startDeclaredNamespace(name: string): TypescriptDeclarationComposer {
+  startTopLevelNamespace(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
-    this.appendLine(`declare namespace ${name} {`)
+    this.appendLine(`export namespace ${name} {`)
     this.appendLine("")
     this.namespaceOrModule = true
     this.alreadyStarted = true
@@ -268,7 +268,7 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
       const packageParts = protoFile.getPackage().split(".")
       packageParts.forEach((packagePart, index) => {
         if (index == 0) {
-          tsComposer.startDeclaredNamespace(packagePart)
+          tsComposer.startTopLevelNamespace(packagePart)
           indentedComposers.push(tsComposer)
           tsInnerComposer = tsComposer.withIndent()
         } else {

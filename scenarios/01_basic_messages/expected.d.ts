@@ -1,4 +1,4 @@
-declare namespace plain_email {
+export namespace plain_email {
 
   const enum EncryptionType {
     NONE = 0,
@@ -48,7 +48,7 @@ declare namespace plain_email {
 
 }
 
-declare namespace some {
+export namespace some {
 
   namespace nested {
   
