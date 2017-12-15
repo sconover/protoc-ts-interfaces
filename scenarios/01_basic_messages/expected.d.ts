@@ -45,6 +45,12 @@ export namespace plain_email {
     attach_type: plain_email.PlainEmail.AttachmentType
     encrypt_type: plain_email.EncryptionType
   }
+  
+  interface PlainEmail2 {
+    from2: plain_email.Identity
+    to2: plain_email.Identity
+    body_text2: string
+  }
 
 }
 

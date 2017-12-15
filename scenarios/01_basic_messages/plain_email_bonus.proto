@@ -1,0 +1,11 @@
+syntax = "proto3";
+package plain_email;
+
+import "scenarios/01_basic_messages/plain_email.proto";
+
+message PlainEmail2 {
+  Identity from2 = 1;
+  Identity to2 = 2;
+  string body_text2 = 3;
+}
+

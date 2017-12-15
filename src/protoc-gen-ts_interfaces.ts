@@ -260,12 +260,22 @@ function lowerCaseFirstLetter(str: string): string {
 export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   const tsComposer = new TypescriptDeclarationComposer()
 
+  const packageToProtoFiles: any = {}
   for (let protoFile of input.getProtoFileList()) {
+    let packageStr: string = protoFile.getPackage()
+    if (!packageToProtoFiles[protoFile.getPackage()]) {
+      packageToProtoFiles[packageStr] = new Array()
+    }
+    packageToProtoFiles[packageStr].push(protoFile)
+  }
+
+  for (let packageStr of Object.keys(packageToProtoFiles)) {
+    const protoFiles: Array<FileDescriptorProto> = packageToProtoFiles[packageStr]
     let tsInnerComposer: TypescriptDeclarationComposer
     let currentPackagePrefix = null
-    const indentedComposers: Array<TypescriptDeclarationComposer> = new Array()
-    if (protoFile.hasPackage()) {
-      const packageParts = protoFile.getPackage().split(".")
+    const indentedComposers: Array<TypescriptDeclarationComposer> = new Array()      
+    if (packageStr) {
+      const packageParts:Array<string> = packageStr.split(".")
       packageParts.forEach((packagePart, index) => {
         if (index == 0) {
           tsComposer.startTopLevelNamespace(packagePart)
@@ -277,19 +287,21 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
           tsInnerComposer = tsInnerComposer.withIndent()
         }
       })
-      currentPackagePrefix = protoFile.getPackage() + "."
+      currentPackagePrefix = packageStr + "."
     } else {
       tsInnerComposer = tsComposer
       currentPackagePrefix = ""
     }
-    for (let protoEnumType of protoFile.getEnumTypeList()) {
-      transformProtoEnumTypeToTypescriptInterface(tsInnerComposer!, protoEnumType);
-    }
-    for (let protoMessageType of protoFile.getMessageTypeList()) {
-      transformProtoMessageTypeToTypescriptInterface(tsInnerComposer!, protoMessageType);
-    }
-    for (let protoService of protoFile.getServiceList()) {
-      transformProtoServiceToTypescriptInterface(tsInnerComposer!, protoService);
+    for (let protoFile of protoFiles) {  
+      for (let protoEnumType of protoFile.getEnumTypeList()) {
+        transformProtoEnumTypeToTypescriptInterface(tsInnerComposer!, protoEnumType);
+      }
+      for (let protoMessageType of protoFile.getMessageTypeList()) {
+        transformProtoMessageTypeToTypescriptInterface(tsInnerComposer!, protoMessageType);
+      }
+      for (let protoService of protoFile.getServiceList()) {
+        transformProtoServiceToTypescriptInterface(tsInnerComposer!, protoService);
+      }  
     }
     for (let i = 0; i < indentedComposers.length; i++){
       indentedComposers[indentedComposers.length - i - 1].endBlock()
