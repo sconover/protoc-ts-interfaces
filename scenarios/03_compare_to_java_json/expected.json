@@ -1,0 +1,28 @@
+{
+  "manyContainers": [
+    {
+      "name": "this is the container name",
+      "onePrimitive": {
+        "exampleString": "this is an example string value",
+        "exampleInt": 77,
+        "exampleLong": 78,
+        "exampleFloat": 77.78,
+        "exampleDouble": 78.78,
+        "exampleBool": true
+      },
+      "oneEnumValue": "SECOND_OPTION"
+    },
+    {
+      "name": "this is the second container"
+    }
+  ],
+  "manyEnumValues": [
+    "SECOND_OPTION",
+    "SECOND_OPTION",
+    "FIRST_OPTION"
+  ],
+  "names": [
+    "name one",
+    "name two"
+  ]
+}

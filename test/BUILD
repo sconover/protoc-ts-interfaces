@@ -11,4 +11,5 @@ ts_test(test_file = "scenario_test.ts",
         "//scenarios/01_basic_messages:plain_email_bonus.proto",
         "//scenarios/02_service:expected.d.ts",
         "//scenarios/02_service:baker.proto",
+        "//scenarios/03_compare_to_java_json:various.proto",
     ])
