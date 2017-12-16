@@ -49,3 +49,4 @@ message Repetition {
   repeated ExampleEnum many_enum_values = 2;
   repeated Container many_containers = 3;
 }
+

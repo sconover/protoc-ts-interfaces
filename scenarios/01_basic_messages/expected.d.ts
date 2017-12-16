@@ -6,7 +6,7 @@ export namespace plain_email {
   }
   
   module Identity {
-
+  
     module SecretKey {
     
       const enum KeyType {

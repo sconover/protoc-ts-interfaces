@@ -145,45 +145,13 @@ function transformProtoEnumTypeToTypescriptInterface(
   tsComposer.endBlock();
 }
 
-function specialOneOfInterfaceName(protoOneOfType: OneofDescriptorProto) {
-  return `_oneof_${protoOneOfType.getName()}`
-}
-
-function makeSpecialTypescriptInterfaceForProtoOneOfType(
-  tsComposer: TypescriptDeclarationComposer, 
-  protoOneOfType: OneofDescriptorProto,
-  oneOfFields: Array<FieldDescriptorProto>) {
-  tsComposer.startInterface(specialOneOfInterfaceName(protoOneOfType));
-  for (let protoField of oneOfFields) {
-    const tsComposerForFields = tsComposer.withIndent();
-    transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField, true);
-  }
-  tsComposer.endBlock();
-}
-
 /** Given a proto message type, write the corresponding ts interface (with members corresponding to proto fields) */
 function transformProtoMessageTypeToTypescriptInterface(
   tsComposer: TypescriptDeclarationComposer, 
   protoMessageType: DescriptorProto) {
   
-  // separate out the fields contained in "oneof" groups, 
-  // from the rest of the "regular" fields.
-  const oneOfIndexToFields = new Array<Array<FieldDescriptorProto>>()
-  const regularFields = new Array<FieldDescriptorProto>()
-  for (let protoField of protoMessageType.getFieldList()) {
-    if (protoField.hasOneofIndex()) {
-      if (oneOfIndexToFields[protoField.getOneofIndex()] == undefined) {
-        oneOfIndexToFields[protoField.getOneofIndex()] = new Array()
-      }
-      oneOfIndexToFields[protoField.getOneofIndex()].push(protoField)
-    } else {
-      regularFields.push(protoField)
-    }
-  }
-
   if (protoMessageType.getEnumTypeList().length>0 || 
-      protoMessageType.getNestedTypeList().length>0 ||
-      protoMessageType.getOneofDeclList().length > 0) {
+      protoMessageType.getNestedTypeList().length>0) {
     tsComposer.startModule(protoMessageType.getName())
     const tsInnerModuleComposer = tsComposer.withIndent()
     for (let protoEnumType of protoMessageType.getEnumTypeList()) {
@@ -192,22 +160,14 @@ function transformProtoMessageTypeToTypescriptInterface(
     for (let protoNestedMessageType of protoMessageType.getNestedTypeList()) {
       transformProtoMessageTypeToTypescriptInterface(tsInnerModuleComposer, protoNestedMessageType) // note: messages recurse
     }
-    for (let i=0; i<protoMessageType.getOneofDeclList().length; i++) {
-      const protoOneOfType = protoMessageType.getOneofDeclList()[i]
-      const oneOfFields = oneOfIndexToFields[i]
-      makeSpecialTypescriptInterfaceForProtoOneOfType(tsInnerModuleComposer, protoOneOfType, oneOfFields) // note: oneof's don't recurse
-    }
     tsComposer.endBlock()
     tsComposer.clearNamespace() // this seems inelegant for some reason, but the spacing all works out this way...
   }
   
   tsComposer.startInterface(protoMessageType.getName());
   const tsComposerForFields = tsComposer.withIndent();
-  for (let protoField of regularFields) { // render regular fields here - notably not including "oneof" fields
+  for (let protoField of protoMessageType.getFieldList()) {
     transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField);
-  }
-  for (let protoOneOf of protoMessageType.getOneofDeclList()) {
-    tsComposerForFields.member(camelize(protoOneOf.getName()), specialOneOfInterfaceName(protoOneOf))
   }
   tsComposer.endBlock();
 }
@@ -248,17 +208,32 @@ TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
 /** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoFieldToTypescriptInterfaceMember(
   tsComposer: TypescriptDeclarationComposer, 
-  protoField: FieldDescriptorProto,
-  optional: boolean = false) {
+  protoField: FieldDescriptorProto) {
   let typeNameSuffix = ""
   if (protoField.hasLabel() && protoField.getLabel() == FieldDescriptorProto.Label.LABEL_REPEATED) {
     typeNameSuffix = "[]"
   }
   const camelizedProtoFieldName = camelize(protoField.getName())
   let finalFieldName = camelizedProtoFieldName
-  if (optional) {
+
+  // the current, and admittedly very crude, approach to oneof's is just to make them optional.
+  // this means:
+  //   - the fields for multiple oneof's in the same message will simply be lined up alongside each other
+  //   - there is nothing preventing anyone from specifying more than one of the oneof properties,
+  //     and in which case json will happily serialize these.
+  //     The java implementation appears to select the one most-recently-set field out of all fields.
+  //     which itself is...ok, I guess.
+  // It does meet the current goal of serializing to json properly - in the way proto implementations expect.
+  // Anyway, this is certainly an area for future attention and improvement.
+  // I am trying to make this implementation json serialization and deserialization friendly,
+  // however in the future we may want to require usage of json ser/deser methods provided 
+  // by this library, in order to have extra flexibility such that something like oneof can
+  // have a proper treatment (i.e. where typescript language support doesn't really address a proto
+  // concept like oneof.)
+  if (protoField.hasOneofIndex()) {
     finalFieldName = finalFieldName + "?"
   }
+
   if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE || 
       protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
     tsComposer.member(finalFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix);

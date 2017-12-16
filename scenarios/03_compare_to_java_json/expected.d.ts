@@ -15,10 +15,26 @@ export namespace various {
     exampleBytes: Uint8Array | string
   }
   
+  interface A {
+    aStr: string
+  }
+  
+  interface B {
+    bStr: string
+  }
+  
+  interface EitherAOrB {
+    a?: various.A
+    b?: various.B
+  }
+  
   interface Container {
     name: string
     onePrimitive: various.Primitives
     oneEnumValue: various.ExampleEnum
+    choose: various.EitherAOrB
+    c?: string
+    d?: string
   }
   
   interface Repetition {

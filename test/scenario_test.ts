@@ -39,6 +39,10 @@ suite("scenario", () => {
     tsContainerObj.name = "this is the container name"
     tsContainerObj.onePrimitive = tsPrimitiveObj
     tsContainerObj.oneEnumValue = various.ExampleEnum.SECOND_OPTION
+    tsContainerObj.choose = (<various.EitherAOrB>new Object())
+    tsContainerObj.choose.b = (<various.B>new Object())
+    tsContainerObj.choose.b.bStr = "this is b"
+    tsContainerObj.d = "this is d"
 
     const tsRepetitionObj:various.Repetition = (<various.Repetition>new Object())
     tsRepetitionObj.manyContainers = [
@@ -51,7 +55,6 @@ suite("scenario", () => {
       various.ExampleEnum.FIRST_OPTION
     ]
     tsRepetitionObj.names = ["name one", "name two"]
-    // tsObj.exampleBytes = new TextEncoder("utf-8").encode("abc");
 
     var tsJsonStringifiedPretty = JSON.stringify(tsRepetitionObj, null, 2);
     const expectedJson = fs.readFileSync(path.join(__dirname, "../scenarios/03_compare_to_java_json/expected.json")).toString()
