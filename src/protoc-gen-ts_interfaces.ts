@@ -253,60 +253,99 @@ function lowerCaseFirstLetter(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1)
 }
 
+class ProtoPackage {
+  public name: string
+  public contents: Array<ProtoFileOrPackage>
+  
+  constructor(name: string, contents: Array<ProtoFileOrPackage>) {
+    this.name = name
+    this.contents = contents
+  }
+
+  isRoot() {
+    return this.name == ""
+  }
+
+  appendProtoFile(protoFile: FileDescriptorProto) {
+    this.contents.push(new ProtoFileOrPackage(protoFile, undefined))
+  }
+
+  findOrCreateAndAppendChildPackage(name: string): ProtoPackage {
+    const existing = this.contents.filter(child => child.isProtoPackage() && child.protoPackage!.name == name)
+    if (existing.length == 1) {
+      return existing[0].protoPackage!
+    } else {
+      const newChildPackage = new ProtoPackage(name, new Array())
+      this.contents.push(new ProtoFileOrPackage(undefined, newChildPackage))
+      return newChildPackage
+    }
+  }
+}
+
+class ProtoFileOrPackage {
+  public protoFile?: FileDescriptorProto
+  public protoPackage?: ProtoPackage
+
+  constructor(protoFile?: FileDescriptorProto, protoPackage?: ProtoPackage) {
+    this.protoFile = protoFile
+    this.protoPackage = protoPackage
+  }
+
+  isProtoPackage(): boolean {
+    return this.protoPackage != undefined
+  }
+
+  isProtoFile(): boolean {
+    return this.protoFile != undefined
+  }
+}
+
+function writePackage(protoPackage: ProtoPackage, tsComposer: TypescriptDeclarationComposer): void {
+  for (let entry of protoPackage.contents) {
+    if (entry.isProtoFile()) {
+      const protoFile = entry.protoFile!
+      for (let protoEnumType of protoFile.getEnumTypeList()) {
+        transformProtoEnumTypeToTypescriptInterface(tsComposer, protoEnumType);
+      }
+      for (let protoMessageType of protoFile.getMessageTypeList()) {
+        transformProtoMessageTypeToTypescriptInterface(tsComposer, protoMessageType);
+      }
+      for (let protoService of protoFile.getServiceList()) {
+        transformProtoServiceToTypescriptInterface(tsComposer, protoService);
+      }  
+    } else {
+      const childPackage = entry.protoPackage!
+      if (protoPackage.isRoot()) {
+        tsComposer.startTopLevelNamespace(childPackage.name)
+      } else {
+        tsComposer.startPlainNamespace(childPackage.name)
+      }
+      writePackage(childPackage, tsComposer.withIndent())
+      tsComposer.endBlock()
+    }
+  }
+}
+
 /** Core operation. Transforms protoc input, a series of proto files, into the
  * output, which is a single file containing all gen'd ts interfaces, based 
  * on the proto defs.
  */
 export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   const tsComposer = new TypescriptDeclarationComposer()
-
-  const packageToProtoFiles: any = {}
+  const rootPackage = new ProtoPackage("", new Array())
   for (let protoFile of input.getProtoFileList()) {
-    let packageStr: string = protoFile.getPackage()
-    if (!packageToProtoFiles[protoFile.getPackage()]) {
-      packageToProtoFiles[packageStr] = new Array()
+    let currentPackage = rootPackage
+    if (protoFile.hasPackage()) {
+      for (let packagePart of protoFile.getPackage().split(".")) {
+        currentPackage = currentPackage.findOrCreateAndAppendChildPackage(packagePart)
+      }
+      currentPackage.appendProtoFile(protoFile)
+    } else {
+      rootPackage.appendProtoFile(protoFile)
     }
-    packageToProtoFiles[packageStr].push(protoFile)
   }
 
-  for (let packageStr of Object.keys(packageToProtoFiles)) {
-    const protoFiles: Array<FileDescriptorProto> = packageToProtoFiles[packageStr]
-    let tsInnerComposer: TypescriptDeclarationComposer
-    let currentPackagePrefix = null
-    const indentedComposers: Array<TypescriptDeclarationComposer> = new Array()      
-    if (packageStr) {
-      const packageParts:Array<string> = packageStr.split(".")
-      packageParts.forEach((packagePart, index) => {
-        if (index == 0) {
-          tsComposer.startTopLevelNamespace(packagePart)
-          indentedComposers.push(tsComposer)
-          tsInnerComposer = tsComposer.withIndent()
-        } else {
-          tsInnerComposer.startPlainNamespace(packagePart)
-          indentedComposers.push(tsInnerComposer)
-          tsInnerComposer = tsInnerComposer.withIndent()
-        }
-      })
-      currentPackagePrefix = packageStr + "."
-    } else {
-      tsInnerComposer = tsComposer
-      currentPackagePrefix = ""
-    }
-    for (let protoFile of protoFiles) {  
-      for (let protoEnumType of protoFile.getEnumTypeList()) {
-        transformProtoEnumTypeToTypescriptInterface(tsInnerComposer!, protoEnumType);
-      }
-      for (let protoMessageType of protoFile.getMessageTypeList()) {
-        transformProtoMessageTypeToTypescriptInterface(tsInnerComposer!, protoMessageType);
-      }
-      for (let protoService of protoFile.getServiceList()) {
-        transformProtoServiceToTypescriptInterface(tsInnerComposer!, protoService);
-      }  
-    }
-    for (let i = 0; i < indentedComposers.length; i++){
-      indentedComposers[indentedComposers.length - i - 1].endBlock()
-    }
-  }
+  writePackage(rootPackage, tsComposer)
 
   const outTsFile = new CodeGeneratorResponse.File()
   outTsFile.setName(GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME)
