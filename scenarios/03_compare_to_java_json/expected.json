@@ -10,7 +10,13 @@
         "exampleDouble": 78.78,
         "exampleBool": true
       },
-      "oneEnumValue": "SECOND_OPTION"
+      "oneEnumValue": "SECOND_OPTION",
+      "choose": {
+        "b": {
+          "bStr": "this is b"
+        }
+      },
+      "d": "this is d"
     },
     {
       "name": "this is the second container"

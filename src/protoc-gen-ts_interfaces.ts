@@ -1,5 +1,5 @@
 import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto, 
-        DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
+        DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto, OneofDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
 
 export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "proto.generated.d.ts"
@@ -145,19 +145,57 @@ function transformProtoEnumTypeToTypescriptInterface(
   tsComposer.endBlock();
 }
 
+function specialOneOfInterfaceName(protoOneOfType: OneofDescriptorProto) {
+  return `_oneof_${protoOneOfType.getName()}`
+}
+
+function makeSpecialTypescriptInterfaceForProtoOneOfType(
+  tsComposer: TypescriptDeclarationComposer, 
+  protoOneOfType: OneofDescriptorProto,
+  oneOfFields: Array<FieldDescriptorProto>) {
+  tsComposer.startInterface(specialOneOfInterfaceName(protoOneOfType));
+  for (let protoField of oneOfFields) {
+    const tsComposerForFields = tsComposer.withIndent();
+    transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField, true);
+  }
+  tsComposer.endBlock();
+}
+
 /** Given a proto message type, write the corresponding ts interface (with members corresponding to proto fields) */
 function transformProtoMessageTypeToTypescriptInterface(
   tsComposer: TypescriptDeclarationComposer, 
   protoMessageType: DescriptorProto) {
   
-  if (protoMessageType.getEnumTypeList().length>0 || protoMessageType.getNestedTypeList().length>0) {
+  // separate out the fields contained in "oneof" groups, 
+  // from the rest of the "regular" fields.
+  const oneOfIndexToFields = new Array<Array<FieldDescriptorProto>>()
+  const regularFields = new Array<FieldDescriptorProto>()
+  for (let protoField of protoMessageType.getFieldList()) {
+    if (protoField.hasOneofIndex()) {
+      if (oneOfIndexToFields[protoField.getOneofIndex()] == undefined) {
+        oneOfIndexToFields[protoField.getOneofIndex()] = new Array()
+      }
+      oneOfIndexToFields[protoField.getOneofIndex()].push(protoField)
+    } else {
+      regularFields.push(protoField)
+    }
+  }
+
+  if (protoMessageType.getEnumTypeList().length>0 || 
+      protoMessageType.getNestedTypeList().length>0 ||
+      protoMessageType.getOneofDeclList().length > 0) {
     tsComposer.startModule(protoMessageType.getName())
     const tsInnerModuleComposer = tsComposer.withIndent()
     for (let protoEnumType of protoMessageType.getEnumTypeList()) {
-      transformProtoEnumTypeToTypescriptInterface(tsInnerModuleComposer, protoEnumType); // note: enums don't recurse
+      transformProtoEnumTypeToTypescriptInterface(tsInnerModuleComposer, protoEnumType) // note: enums don't recurse
     }
     for (let protoNestedMessageType of protoMessageType.getNestedTypeList()) {
-      transformProtoMessageTypeToTypescriptInterface(tsInnerModuleComposer, protoNestedMessageType); // note: messages recurse
+      transformProtoMessageTypeToTypescriptInterface(tsInnerModuleComposer, protoNestedMessageType) // note: messages recurse
+    }
+    for (let i=0; i<protoMessageType.getOneofDeclList().length; i++) {
+      const protoOneOfType = protoMessageType.getOneofDeclList()[i]
+      const oneOfFields = oneOfIndexToFields[i]
+      makeSpecialTypescriptInterfaceForProtoOneOfType(tsInnerModuleComposer, protoOneOfType, oneOfFields) // note: oneof's don't recurse
     }
     tsComposer.endBlock()
     tsComposer.clearNamespace() // this seems inelegant for some reason, but the spacing all works out this way...
@@ -165,8 +203,11 @@ function transformProtoMessageTypeToTypescriptInterface(
   
   tsComposer.startInterface(protoMessageType.getName());
   const tsComposerForFields = tsComposer.withIndent();
-  for (let protoField of protoMessageType.getFieldList()) {
+  for (let protoField of regularFields) { // render regular fields here - notably not including "oneof" fields
     transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField);
+  }
+  for (let protoOneOf of protoMessageType.getOneofDeclList()) {
+    tsComposerForFields.member(camelize(protoOneOf.getName()), specialOneOfInterfaceName(protoOneOf))
   }
   tsComposer.endBlock();
 }
@@ -207,23 +248,28 @@ TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
 /** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoFieldToTypescriptInterfaceMember(
   tsComposer: TypescriptDeclarationComposer, 
-  protoField: FieldDescriptorProto) {
+  protoField: FieldDescriptorProto,
+  optional: boolean = false) {
   let typeNameSuffix = ""
   if (protoField.hasLabel() && protoField.getLabel() == FieldDescriptorProto.Label.LABEL_REPEATED) {
     typeNameSuffix = "[]"
   }
   const camelizedProtoFieldName = camelize(protoField.getName())
+  let finalFieldName = camelizedProtoFieldName
+  if (optional) {
+    finalFieldName = finalFieldName + "?"
+  }
   if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE || 
       protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
-    tsComposer.member(camelizedProtoFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix);
+    tsComposer.member(finalFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix);
   } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
-    tsComposer.member(camelizedProtoFieldName, "Uint8Array | string"); // what do we do about repeated, bytes?
+    tsComposer.member(finalFieldName, "Uint8Array | string"); // what do we do about repeated, bytes?
   } else {
     const tsType = TypeNumToTypeString[protoField.getType()];
     if (tsType == null) {
       throw new Error(`no ts type found for proto type number ${protoField.getType()}`);
     }
-    tsComposer.member(camelizedProtoFieldName, tsType + typeNameSuffix);
+    tsComposer.member(finalFieldName, tsType + typeNameSuffix);
   }
 }
 

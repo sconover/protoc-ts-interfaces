@@ -20,7 +20,12 @@ class PrintProtoJson {
               .setExampleDouble(78.78)
               .setExampleBool(true)
               .setExampleBytes(ByteString.copyFrom("abc".getBytes())))
-          .setOneEnumValue(Various.ExampleEnum.SECOND_OPTION))
+          .setOneEnumValue(Various.ExampleEnum.SECOND_OPTION)
+          .setChoose(Various.EitherAOrB.newBuilder()
+            .setB(Various.B.newBuilder()
+              .setBStr("this is b"))
+            .build())
+          .setD("this is d"))
       .addManyContainers(
         Various.Container.newBuilder()
           .setName("this is the second container"))

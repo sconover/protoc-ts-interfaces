@@ -18,10 +18,30 @@ enum ExampleEnum {
   SECOND_OPTION = 1;
 }
 
+message A {
+  string a_str = 1;
+}
+
+message B {
+  string b_str = 1;
+}
+
+message EitherAOrB {
+  oneof gotta_choose {
+    A a = 1;
+    B b = 2;
+  }
+}
+
 message Container {
   string name = 1;
   Primitives one_primitive = 2;
   ExampleEnum one_enum_value = 3;
+  EitherAOrB choose = 4;
+  oneof choose_simpler {
+    string c = 5;
+    string d = 6;
+  }
 }
 
 message Repetition {

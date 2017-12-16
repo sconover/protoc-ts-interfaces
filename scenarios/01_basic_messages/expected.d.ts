@@ -6,7 +6,7 @@ export namespace plain_email {
   }
   
   module Identity {
-  
+
     module SecretKey {
     
       const enum KeyType {
@@ -26,6 +26,8 @@ export namespace plain_email {
   interface Identity {
     name: string
     email: string
+    facebook?: string
+    twitter?: string
   }
   
   module PlainEmail {

@@ -5,6 +5,11 @@ message Identity {
   string name = 1;
   string email = 2;
 
+  oneof social {
+    string facebook = 3;
+    string twitter = 4;
+  }
+
   message SecretKey {
     enum KeyType {
       PGP = 0;
