@@ -1,8 +1,8 @@
 export namespace baker {
 
   const enum Deliciousness {
-    ITS_OK = 0,
-    QUITE_DELICIOUS_SIR = 1
+    ITS_OK = "ITS_OK",
+    QUITE_DELICIOUS_SIR = "QUITE_DELICIOUS_SIR"
   }
   
   interface PleaseBakeCakeRequest {

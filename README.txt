@@ -1,5 +1,6 @@
 - generate ts interfaces via protoc plugin
 - reuses parts of https://github.com/improbable-eng/ts-protoc-gen
+- JSON.stringify of the ts object results in json that is deserializable by other proto libraries
 
 dev setup:
 - install bazel
@@ -10,3 +11,9 @@ dev setup:
   - this includes usage of the plugin to gen d.ts's for the various scenarios in the scenarios directory
 - to run tests: bazel test //...
 - followed http://blog.npmjs.org/post/118810260230/building-a-simple-command-line-tool-with-npm to make the cli and publish the package to the npm repo
+
+TODO (known):
+  - maps, per https://developers.google.com/protocol-buffers/docs/proto3#json
+  - bytes / b64
+  - timestamp
+  - duration

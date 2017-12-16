@@ -4,6 +4,10 @@ import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/googl
 
 export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "proto.generated.d.ts"
 
+function camelize(str: string) {
+  return str.replace(/_([a-z])/g, function (g) { return g[1].toUpperCase(); });
+}
+
 /** Accumulates ts interface file content */
 class StringWriter {
   content: string = ""
@@ -96,13 +100,13 @@ class TypescriptDeclarationComposer {
     return this
   }
 
-  enumValue(enumName: string, enumNumber: number): TypescriptDeclarationComposer {
-    this.appendLine(`${enumName} = ${enumNumber},`) // there's a comma
+  enumValue(enumName: string): TypescriptDeclarationComposer {
+    this.appendLine(`${enumName} = "${enumName}",`) // there's a comma
     return this;
   }
 
-  lastEnumValue(enumName: string, enumNumber: number): TypescriptDeclarationComposer {
-    this.appendLine(`${enumName} = ${enumNumber}`) // note: no comma
+  lastEnumValue(enumName: string): TypescriptDeclarationComposer {
+    this.appendLine(`${enumName} = "${enumName}"`) // note: no comma
     return this;
   }
 
@@ -204,17 +208,22 @@ TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
 function transformProtoFieldToTypescriptInterfaceMember(
   tsComposer: TypescriptDeclarationComposer, 
   protoField: FieldDescriptorProto) {
+  let typeNameSuffix = ""
+  if (protoField.hasLabel() && protoField.getLabel() == FieldDescriptorProto.Label.LABEL_REPEATED) {
+    typeNameSuffix = "[]"
+  }
+  const camelizedProtoFieldName = camelize(protoField.getName())
   if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE || 
       protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
-    tsComposer.member(protoField.getName(), toTsTypeName(protoField.getTypeName()));
+    tsComposer.member(camelizedProtoFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix);
   } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
-    tsComposer.member(protoField.getName(), "Uint8Array | string");
+    tsComposer.member(camelizedProtoFieldName, "Uint8Array | string"); // what do we do about repeated, bytes?
   } else {
     const tsType = TypeNumToTypeString[protoField.getType()];
     if (tsType == null) {
       throw new Error(`no ts type found for proto type number ${protoField.getType()}`);
     }
-    tsComposer.member(protoField.getName(), tsType);
+    tsComposer.member(camelizedProtoFieldName, tsType + typeNameSuffix);
   }
 }
 
@@ -230,12 +239,12 @@ function transformProtoRpcMethodToTypescriptInterfaceMethodSignature(
 
 /** Given a proto enum value, write the corresponding ts enum value */
 function transformProtoEnumValueToTypescriptEnumValue(tsComposer: TypescriptDeclarationComposer, protoEnumValue: EnumValueDescriptorProto): void {
-  tsComposer.enumValue(protoEnumValue.getName(), protoEnumValue.getNumber());
+  tsComposer.enumValue(protoEnumValue.getName());
 }
 
 /** Given a proto enum value, write the corresponding ts enum value (last position in list) */
 function transformProtoEnumValueToLastTypescriptEnumValue(tsComposer: TypescriptDeclarationComposer, protoEnumValue: EnumValueDescriptorProto): void {
-  tsComposer.lastEnumValue(protoEnumValue.getName(), protoEnumValue.getNumber());
+  tsComposer.lastEnumValue(protoEnumValue.getName());
 }
 
 function toTsTypeName(protoTypeName: string): string {

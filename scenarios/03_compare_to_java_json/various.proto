@@ -1,0 +1,31 @@
+syntax = "proto3";
+package various;
+
+// see proto3 json rules here: https://developers.google.com/protocol-buffers/docs/proto3#json
+
+message Primitives {
+  string example_string = 1;
+  int32 example_int = 2;
+  int64 example_long = 3;
+  float example_float = 4;
+  double example_double = 5;
+  bool example_bool = 6;
+  bytes example_bytes = 7;
+}
+
+enum ExampleEnum {
+  FIRST_OPTION = 0;
+  SECOND_OPTION = 1;
+}
+
+message Container {
+  string name = 1;
+  Primitives one_primitive = 2;
+  ExampleEnum one_enum_value = 3;
+}
+
+message Repetition {
+  repeated string names = 1;
+  repeated ExampleEnum many_enum_values = 2;
+  repeated Container many_containers = 3;
+}

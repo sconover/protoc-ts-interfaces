@@ -290,16 +290,16 @@ suite("transform", () => {
             .addMessageType(
               new MessageTypeProtoBuilder()
                 .setName("FortuneCookie")
-                .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
-                .addPrimitiveField("fortune_number", FieldDescriptorProto.Type.TYPE_INT32)
+                .addPrimitiveField("fortuneContent", FieldDescriptorProto.Type.TYPE_STRING)
+                .addPrimitiveField("fortuneNumber", FieldDescriptorProto.Type.TYPE_INT32)
                 .build())
           .build())
         .build())
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortune_content", "StringKeyword"], 
-        ["fortune_number", "NumberKeyword"]]], 
+        ["fortuneContent", "StringKeyword"], 
+        ["fortuneNumber", "NumberKeyword"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
   })
 
@@ -307,8 +307,8 @@ suite("transform", () => {
     const fortuneCookieMessageType = 
       new MessageTypeProtoBuilder()
         .setName("FortuneCookie")
-        .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
-        .addPrimitiveField("fortune_number", FieldDescriptorProto.Type.TYPE_INT32)
+        .addPrimitiveField("fortuneContent", FieldDescriptorProto.Type.TYPE_STRING)
+        .addPrimitiveField("fortuneNumber", FieldDescriptorProto.Type.TYPE_INT32)
         .build()
     const codeGenResponse = transform(
       new CodeGeneratorRequestBuilder()
@@ -326,13 +326,13 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortune_content", "StringKeyword"], 
-        ["fortune_number", "NumberKeyword"]]], 
+        ["fortuneContent", "StringKeyword"], 
+        ["fortuneNumber", "NumberKeyword"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
 
     assert.deepEqual(
       ["FinalBill", [
-        ["amount_cents", "NumberKeyword"], 
+        ["amountCents", "NumberKeyword"], 
         ["cookie", "FortuneCookie"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
   })
@@ -341,8 +341,8 @@ suite("transform", () => {
     const fortuneCookieMessageType =
       new MessageTypeProtoBuilder()
         .setName("FortuneCookie")
-        .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
-        .addPrimitiveField("fortune_number", FieldDescriptorProto.Type.TYPE_INT32)
+        .addPrimitiveField("fortuneContent", FieldDescriptorProto.Type.TYPE_STRING)
+        .addPrimitiveField("fortuneNumber", FieldDescriptorProto.Type.TYPE_INT32)
         .build()
     const codeGenResponse = transform(
       new CodeGeneratorRequestBuilder()
@@ -353,7 +353,7 @@ suite("transform", () => {
             .addMessageType(
               new MessageTypeProtoBuilder()
                 .setName("FinalBill")
-                .addPrimitiveField("amount_cents", FieldDescriptorProto.Type.TYPE_INT32)
+                .addPrimitiveField("amountCents", FieldDescriptorProto.Type.TYPE_INT32)
                 .addMessageField("cookie", fortuneCookieMessageType, "single_level_package")
                 .build())
           .build())
@@ -367,13 +367,13 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortune_content", "StringKeyword"],
-        ["fortune_number", "NumberKeyword"]]],
+        ["fortuneContent", "StringKeyword"],
+        ["fortuneNumber", "NumberKeyword"]]],
       extractInterfaceInfo(interfaceNodes[0]))
 
     assert.deepEqual(
       ["FinalBill", [
-        ["amount_cents", "NumberKeyword"],
+        ["amountCents", "NumberKeyword"],
         ["cookie", "FortuneCookie"]]],
       extractInterfaceInfo(interfaceNodes[1]))
   })
@@ -410,21 +410,21 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["Smorgasbord", [
-        ["originally_double", "NumberKeyword"], 
-        ["originally_float", "NumberKeyword"], 
-        ["originally_int64", "NumberKeyword"], 
-        ["originally_uint64", "NumberKeyword"], 
-        ["originally_int32", "NumberKeyword"], 
-        ["originally_fixed64", "NumberKeyword"], 
-        ["originally_fixed32", "NumberKeyword"], 
-        ["originally_bool", "BooleanKeyword"], 
-        ["originally_string", "StringKeyword"], 
-        ["originally_bytes", "UnionType"], 
-        ["originally_uint32", "NumberKeyword"], 
-        ["originally_sfixed32", "NumberKeyword"], 
-        ["originally_sfixed64", "NumberKeyword"], 
-        ["originally_sint32", "NumberKeyword"], 
-        ["originally_sint64", "NumberKeyword"]]], 
+        ["originallyDouble", "NumberKeyword"], 
+        ["originallyFloat", "NumberKeyword"], 
+        ["originallyInt64", "NumberKeyword"], 
+        ["originallyUint64", "NumberKeyword"], 
+        ["originallyInt32", "NumberKeyword"], 
+        ["originallyFixed64", "NumberKeyword"], 
+        ["originallyFixed32", "NumberKeyword"], 
+        ["originallyBool", "BooleanKeyword"], 
+        ["originallyString", "StringKeyword"], 
+        ["originallyBytes", "UnionType"], 
+        ["originallyUint32", "NumberKeyword"], 
+        ["originallySfixed32", "NumberKeyword"], 
+        ["originallySfixed64", "NumberKeyword"], 
+        ["originallySint32", "NumberKeyword"], 
+        ["originallySint64", "NumberKeyword"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
   })
 
@@ -444,7 +444,7 @@ suite("transform", () => {
               new MessageTypeProtoBuilder()
                 .setName("FortuneCookie")
                 .addEnumType(protoFortuneKindEnum)
-                .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
+                .addPrimitiveField("fortuneContent", FieldDescriptorProto.Type.TYPE_STRING)
                 .addEnumField("fortune_kind", protoFortuneKindEnum)
                 .build())
           .build())
@@ -460,8 +460,8 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortune_content", "StringKeyword"], 
-        ["fortune_kind", "FortuneKind"]]], 
+        ["fortuneContent", "StringKeyword"], 
+        ["fortuneKind", "FortuneKind"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
   })
 
@@ -473,7 +473,7 @@ suite("transform", () => {
 
     const responseType: DescriptorProto = new MessageTypeProtoBuilder()
       .setName("GetRandomFortuneResponse")
-      .addPrimitiveField("fortune_content", FieldDescriptorProto.Type.TYPE_STRING)
+      .addPrimitiveField("fortuneContent", FieldDescriptorProto.Type.TYPE_STRING)
       .build();
 
     const codeGenResponse = transform(
@@ -496,7 +496,7 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["GetRandomFortuneResponse", [
-        ["fortune_content", "StringKeyword"]]], 
+        ["fortuneContent", "StringKeyword"]]], 
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
 
     assert.deepEqual(
