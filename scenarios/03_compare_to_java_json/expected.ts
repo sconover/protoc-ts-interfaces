@@ -1,11 +1,11 @@
 export namespace various {
 
-  const enum ExampleEnum {
+  export const enum ExampleEnum {
     FIRST_OPTION = "FIRST_OPTION",
     SECOND_OPTION = "SECOND_OPTION"
   }
-  
-  interface Primitives {
+
+  export interface Primitives {
     exampleString: string
     exampleInt: number
     exampleLong: number
@@ -14,21 +14,21 @@ export namespace various {
     exampleBool: boolean
     exampleBytes: Uint8Array | string
   }
-  
-  interface A {
+
+  export interface A {
     aStr: string
   }
-  
-  interface B {
+
+  export interface B {
     bStr: string
   }
-  
-  interface EitherAOrB {
+
+  export interface EitherAOrB {
     a?: various.A
     b?: various.B
   }
-  
-  interface Container {
+
+  export interface Container {
     name: string
     onePrimitive: various.Primitives
     oneEnumValue: various.ExampleEnum
@@ -36,8 +36,8 @@ export namespace various {
     c?: string
     d?: string
   }
-  
-  interface Repetition {
+
+  export interface Repetition {
     names: string[]
     manyEnumValues: various.ExampleEnum[]
     manyContainers: various.Container[]

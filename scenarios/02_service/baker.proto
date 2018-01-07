@@ -8,7 +8,7 @@ message PleaseBakeCakeRequest {
 enum Deliciousness {
   ITS_OK = 0;
   QUITE_DELICIOUS_SIR = 1;
-}  
+}
 
 message PleaseBakeCakeResponse {
   Deliciousness deliciousness = 1;
@@ -17,5 +17,5 @@ message PleaseBakeCakeResponse {
 service BakerService {
   rpc PleaseBakeCake (PleaseBakeCakeRequest) returns (PleaseBakeCakeResponse) {
   }
-}  
+}
 

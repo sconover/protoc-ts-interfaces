@@ -1,38 +1,38 @@
 export namespace plain_email {
 
-  enum EncryptionType {
+  export const enum EncryptionType {
     NONE = "NONE",
     ENCRYPTED = "ENCRYPTED"
   }
 
-  module Identity {
+  export module Identity {
 
-    module SecretKey {
+    export module SecretKey {
 
-      enum KeyType {
+      export const enum KeyType {
         PGP = "PGP",
         OTHER = "OTHER"
       }
 
     }
 
-    interface SecretKey {
+    export interface SecretKey {
       keyType: plain_email.Identity.SecretKey.KeyType
       key: string[]
     }
 
   }
 
-  interface Identity {
+  export interface Identity {
     name: string
     email: string
     facebook?: string
     twitter?: string
   }
 
-  module PlainEmail {
+  export module PlainEmail {
 
-    enum AttachmentType {
+    export const enum AttachmentType {
       NONE = "NONE",
       PDF = "PDF",
       ZIP = "ZIP"
@@ -40,7 +40,7 @@ export namespace plain_email {
 
   }
 
-  interface PlainEmail {
+  export interface PlainEmail {
     from: plain_email.Identity
     to: plain_email.Identity[]
     bodyText: string
@@ -48,7 +48,7 @@ export namespace plain_email {
     encryptType: plain_email.EncryptionType
   }
 
-  interface PlainEmail2 {
+  export interface PlainEmail2 {
     from2: plain_email.Identity
     to2: plain_email.Identity
     bodyText2: string
@@ -58,11 +58,11 @@ export namespace plain_email {
 
 export namespace some {
 
-  namespace nested {
+  export namespace nested {
 
-    namespace html_email {
+    export namespace html_email {
 
-      interface HtmlEmail {
+      export interface HtmlEmail {
         plainEmail: plain_email.PlainEmail
         bodyHtml: string
       }

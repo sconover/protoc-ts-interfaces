@@ -1,19 +1,19 @@
 export namespace baker {
 
-  const enum Deliciousness {
+  export const enum Deliciousness {
     ITS_OK = "ITS_OK",
     QUITE_DELICIOUS_SIR = "QUITE_DELICIOUS_SIR"
   }
-  
-  interface PleaseBakeCakeRequest {
+
+  export interface PleaseBakeCakeRequest {
     size: number
   }
-  
-  interface PleaseBakeCakeResponse {
+
+  export interface PleaseBakeCakeResponse {
     deliciousness: baker.Deliciousness
   }
-  
-  interface BakerService {
+
+  export interface BakerService {
     pleaseBakeCake(request: baker.PleaseBakeCakeRequest): Promise<baker.PleaseBakeCakeResponse>
   }
 

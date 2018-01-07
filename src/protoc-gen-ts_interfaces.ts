@@ -2,7 +2,7 @@ import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto,
         DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto, OneofDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
 
-export const GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME: string = "proto.generated.d.ts"
+export const GENERATED_TYPESCRIPT_FILE_NAME: string = "proto.generated.ts"
 
 function camelize(str: string) {
   return str.replace(/_([a-z])/g, function (g) { return g[1].toUpperCase(); });
@@ -52,7 +52,7 @@ class TypescriptDeclarationComposer {
 
   startPlainNamespace(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
-    this.appendLine(`namespace ${name} {`)
+    this.appendLine(`export namespace ${name} {`)
     this.appendLine("")
     this.namespaceOrModule = true
     this.alreadyStarted = true
@@ -61,7 +61,7 @@ class TypescriptDeclarationComposer {
 
   startModule(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
-    this.appendLine(`module ${name} {`)
+    this.appendLine(`export module ${name} {`)
     this.appendLine("")
     this.namespaceOrModule = true
     this.alreadyStarted = true
@@ -70,14 +70,14 @@ class TypescriptDeclarationComposer {
 
   startInterface(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
-    this.appendLine(`interface ${name} {`)
+    this.appendLine(`export interface ${name} {`)
     this.alreadyStarted = true
     return this
   }
 
-  startEnum(name: string): TypescriptDeclarationComposer {
+  startConstEnum(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
-    this.appendLine(`enum ${name} {`)
+    this.appendLine(`export const enum ${name} {`)
     this.alreadyStarted = true
     return this
   }
@@ -136,7 +136,7 @@ class TypescriptDeclarationComposer {
 function transformProtoEnumTypeToTypescriptInterface(
   tsComposer: TypescriptDeclarationComposer,
   protoEnumType: EnumDescriptorProto) {
-  tsComposer.startEnum(protoEnumType.getName());
+  tsComposer.startConstEnum(protoEnumType.getName());
   const tsComposerForEnumValues = tsComposer.withIndent();
   const lastIndex = protoEnumType.getValueList().length - 1
   protoEnumType.getValueList().forEach((protoEnumValue, index) => {
@@ -382,7 +382,7 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   writePackage(rootPackage, tsComposer)
 
   const outTsFile = new CodeGeneratorResponse.File()
-  outTsFile.setName(GENERATED_TYPESCRIPT_DEFINITION_FILE_NAME)
+  outTsFile.setName(GENERATED_TYPESCRIPT_FILE_NAME)
   outTsFile.setContent(tsComposer.getContent())
   const codeGenResponse = new CodeGeneratorResponse()
   codeGenResponse.addFile(outTsFile)

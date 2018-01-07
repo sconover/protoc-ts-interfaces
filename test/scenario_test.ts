@@ -9,20 +9,20 @@ import { various } from "../bazel-genfiles/scenarios/03_compare_to_java_json/pro
 
 suite("scenario", () => {
   test("01_basic_messages", () => {
-    const expectedContent = fs.readFileSync(path.join(__dirname, "../scenarios/01_basic_messages/expected.d.ts")).toString()
-    const actualContent = fs.readFileSync(path.join(__dirname, "../bazel-genfiles/scenarios/01_basic_messages/proto.generated.d.ts")).toString()
+    const expectedContent = fs.readFileSync(path.join(__dirname, "../scenarios/01_basic_messages/expected.ts")).toString()
+    const actualContent = fs.readFileSync(path.join(__dirname, "../bazel-genfiles/scenarios/01_basic_messages/proto.generated.ts")).toString()
     assert.equal(expectedContent, actualContent)
   })
 
   test("02_service", () => {
-    const expectedContent = fs.readFileSync(path.join(__dirname, "../scenarios/02_service/expected.d.ts")).toString()
-    const actualContent = fs.readFileSync(path.join(__dirname, "../bazel-genfiles/scenarios/02_service/proto.generated.d.ts")).toString()
+    const expectedContent = fs.readFileSync(path.join(__dirname, "../scenarios/02_service/expected.ts")).toString()
+    const actualContent = fs.readFileSync(path.join(__dirname, "../bazel-genfiles/scenarios/02_service/proto.generated.ts")).toString()
     assert.equal(expectedContent, actualContent)
   })
 
   test("03_compare_to_java_json", () => {
-    const expectedContent = fs.readFileSync(path.join(__dirname, "../scenarios/03_compare_to_java_json/expected.d.ts")).toString()
-    const actualContent = fs.readFileSync(path.join(__dirname, "../bazel-genfiles/scenarios/03_compare_to_java_json/proto.generated.d.ts")).toString()
+    const expectedContent = fs.readFileSync(path.join(__dirname, "../scenarios/03_compare_to_java_json/expected.ts")).toString()
+    const actualContent = fs.readFileSync(path.join(__dirname, "../bazel-genfiles/scenarios/03_compare_to_java_json/proto.generated.ts")).toString()
     assert.equal(expectedContent, actualContent)
   })
 
@@ -50,8 +50,8 @@ suite("scenario", () => {
       (<various.Container>{name: "this is the second container"})
     ]
     tsRepetitionObj.manyEnumValues = [
-      various.ExampleEnum.SECOND_OPTION, 
-      various.ExampleEnum.SECOND_OPTION, 
+      various.ExampleEnum.SECOND_OPTION,
+      various.ExampleEnum.SECOND_OPTION,
       various.ExampleEnum.FIRST_OPTION
     ]
     tsRepetitionObj.names = ["name one", "name two"]

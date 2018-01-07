@@ -2,7 +2,7 @@ load("//util:protoc.bzl", "proto_to_ts_interfaces")
 load("@rules_intellij_generate//:def.bzl", "intellij_source_java_library")
 
 proto_to_ts_interfaces(["various.proto"])
-exports_files(["expected.d.ts", "various.proto"])
+exports_files(["expected.ts", "various.proto"])
 
 proto_library(
     name = "03_compare_to_java_json_proto",
@@ -19,7 +19,7 @@ intellij_source_java_library(
     source_folder_to_wildcard_map={"javasrc":"**/*.java"},
     deps=[
         ":java_proto",
-        
+
         "@com_google_code_gson_gson//jar",
         "@com_google_google_guava//jar",
         "@com_google_protobuf_java//:protobuf_java",

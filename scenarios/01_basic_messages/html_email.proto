@@ -7,3 +7,4 @@ message HtmlEmail {
   plain_email.PlainEmail plain_email = 1;
   string body_html = 2;
 }
+
