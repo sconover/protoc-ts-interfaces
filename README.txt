@@ -17,3 +17,4 @@ TODO (known):
   - bytes / b64
   - timestamp
   - duration
+  - might want to make enum vs const enum configurable

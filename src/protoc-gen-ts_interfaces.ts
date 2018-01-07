@@ -1,4 +1,4 @@
-import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto, 
+import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto,
         DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto, OneofDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
 
@@ -75,9 +75,9 @@ class TypescriptDeclarationComposer {
     return this
   }
 
-  startConstEnum(name: string): TypescriptDeclarationComposer {
+  startEnum(name: string): TypescriptDeclarationComposer {
     this.appendSeparatorLineIfAlreadyStarted()
-    this.appendLine(`const enum ${name} {`)
+    this.appendLine(`enum ${name} {`)
     this.alreadyStarted = true
     return this
   }
@@ -124,15 +124,19 @@ class TypescriptDeclarationComposer {
   }
 
   private appendLine(str: string) {
-    this.writer.append(this.prefix + str + "\n")
+    if (str == "") {
+      this.writer.append("\n")
+    } else {
+      this.writer.append(this.prefix + str + "\n")
+    }
   }
 }
 
 /** Given a proto enum type, write the corresponding ts "const enum" */
 function transformProtoEnumTypeToTypescriptInterface(
-  tsComposer: TypescriptDeclarationComposer, 
+  tsComposer: TypescriptDeclarationComposer,
   protoEnumType: EnumDescriptorProto) {
-  tsComposer.startConstEnum(protoEnumType.getName());
+  tsComposer.startEnum(protoEnumType.getName());
   const tsComposerForEnumValues = tsComposer.withIndent();
   const lastIndex = protoEnumType.getValueList().length - 1
   protoEnumType.getValueList().forEach((protoEnumValue, index) => {
@@ -147,10 +151,10 @@ function transformProtoEnumTypeToTypescriptInterface(
 
 /** Given a proto message type, write the corresponding ts interface (with members corresponding to proto fields) */
 function transformProtoMessageTypeToTypescriptInterface(
-  tsComposer: TypescriptDeclarationComposer, 
+  tsComposer: TypescriptDeclarationComposer,
   protoMessageType: DescriptorProto) {
-  
-  if (protoMessageType.getEnumTypeList().length>0 || 
+
+  if (protoMessageType.getEnumTypeList().length>0 ||
       protoMessageType.getNestedTypeList().length>0) {
     tsComposer.startModule(protoMessageType.getName())
     const tsInnerModuleComposer = tsComposer.withIndent()
@@ -163,7 +167,7 @@ function transformProtoMessageTypeToTypescriptInterface(
     tsComposer.endBlock()
     tsComposer.clearNamespace() // this seems inelegant for some reason, but the spacing all works out this way...
   }
-  
+
   tsComposer.startInterface(protoMessageType.getName());
   const tsComposerForFields = tsComposer.withIndent();
   for (let protoField of protoMessageType.getFieldList()) {
@@ -174,7 +178,7 @@ function transformProtoMessageTypeToTypescriptInterface(
 
 /** Given a proto service, write the corresponding ts interface (with method signatures corresponding to rpc's) */
 function transformProtoServiceToTypescriptInterface(
-  tsComposer: TypescriptDeclarationComposer, 
+  tsComposer: TypescriptDeclarationComposer,
   protoService: ServiceDescriptorProto) {
   tsComposer.startInterface(protoService.getName());
   const tsComposerForRpcMethods = tsComposer.withIndent();
@@ -207,7 +211,7 @@ TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
 
 /** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoFieldToTypescriptInterfaceMember(
-  tsComposer: TypescriptDeclarationComposer, 
+  tsComposer: TypescriptDeclarationComposer,
   protoField: FieldDescriptorProto) {
   let typeNameSuffix = ""
   if (protoField.hasLabel() && protoField.getLabel() == FieldDescriptorProto.Label.LABEL_REPEATED) {
@@ -226,7 +230,7 @@ function transformProtoFieldToTypescriptInterfaceMember(
   // It does meet the current goal of serializing to json properly - in the way proto implementations expect.
   // Anyway, this is certainly an area for future attention and improvement.
   // I am trying to make this implementation json serialization and deserialization friendly,
-  // however in the future we may want to require usage of json ser/deser methods provided 
+  // however in the future we may want to require usage of json ser/deser methods provided
   // by this library, in order to have extra flexibility such that something like oneof can
   // have a proper treatment (i.e. where typescript language support doesn't really address a proto
   // concept like oneof.)
@@ -234,7 +238,7 @@ function transformProtoFieldToTypescriptInterfaceMember(
     finalFieldName = finalFieldName + "?"
   }
 
-  if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE || 
+  if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE ||
       protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
     tsComposer.member(finalFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix);
   } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
@@ -250,11 +254,11 @@ function transformProtoFieldToTypescriptInterfaceMember(
 
 /** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoRpcMethodToTypescriptInterfaceMethodSignature(
-  tsComposer: TypescriptDeclarationComposer, 
+  tsComposer: TypescriptDeclarationComposer,
   protoRpcMethod: MethodDescriptorProto) {
   tsComposer.rpcMethodSignature(
-    lowerCaseFirstLetter(protoRpcMethod.getName()), 
-    toTsTypeName(protoRpcMethod.getInputType()), 
+    lowerCaseFirstLetter(protoRpcMethod.getName()),
+    toTsTypeName(protoRpcMethod.getInputType()),
     toTsTypeName(protoRpcMethod.getOutputType()))
 }
 
@@ -286,7 +290,7 @@ function lowerCaseFirstLetter(str: string): string {
 class ProtoPackage {
   public name: string
   public contents: Array<ProtoFileOrPackage>
-  
+
   constructor(name: string, contents: Array<ProtoFileOrPackage>) {
     this.name = name
     this.contents = contents
@@ -342,7 +346,7 @@ function writePackage(protoPackage: ProtoPackage, tsComposer: TypescriptDeclarat
       }
       for (let protoService of protoFile.getServiceList()) {
         transformProtoServiceToTypescriptInterface(tsComposer, protoService);
-      }  
+      }
     } else {
       const childPackage = entry.protoPackage!
       if (protoPackage.isRoot()) {
@@ -357,7 +361,7 @@ function writePackage(protoPackage: ProtoPackage, tsComposer: TypescriptDeclarat
 }
 
 /** Core operation. Transforms protoc input, a series of proto files, into the
- * output, which is a single file containing all gen'd ts interfaces, based 
+ * output, which is a single file containing all gen'd ts interfaces, based
  * on the proto defs.
  */
 export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
@@ -382,7 +386,7 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   outTsFile.setContent(tsComposer.getContent())
   const codeGenResponse = new CodeGeneratorResponse()
   codeGenResponse.addFile(outTsFile)
-      
+
   return codeGenResponse
 }
 
