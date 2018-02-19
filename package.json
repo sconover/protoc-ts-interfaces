@@ -1,6 +1,6 @@
 {
   "name": "protoc-ts-interfaces",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "[WIP/alpha] protoc plugin that generates typescript interfaces from a protobuf schema",
   "main": "index.js",
   "bin": {
