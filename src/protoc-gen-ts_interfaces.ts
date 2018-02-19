@@ -192,8 +192,8 @@ function transformProtoServiceToTypescriptInterface(
 const TypeNumToTypeString: {[key: number]: string} = {};
 TypeNumToTypeString[1] = "number"; // TYPE_DOUBLE
 TypeNumToTypeString[2] = "number"; // TYPE_FLOAT
-TypeNumToTypeString[3] = "number"; // TYPE_INT64
-TypeNumToTypeString[4] = "number"; // TYPE_UINT64
+TypeNumToTypeString[3] = "string"; // TYPE_INT64
+TypeNumToTypeString[4] = "string"; // TYPE_UINT64
 TypeNumToTypeString[5] = "number"; // TYPE_INT32
 TypeNumToTypeString[6] = "number"; // TYPE_FIXED64
 TypeNumToTypeString[7] = "number"; // TYPE_FIXED32
@@ -207,7 +207,7 @@ TypeNumToTypeString[14] = "number"; // TYPE_ENUM
 TypeNumToTypeString[15] = "number"; // TYPE_SFIXED32
 TypeNumToTypeString[16] = "number"; // TYPE_SFIXED64
 TypeNumToTypeString[17] = "number"; // TYPE_SINT32 - Uses ZigZag encoding.
-TypeNumToTypeString[18] = "number"; // TYPE_SINT64 - Uses ZigZag encoding.
+TypeNumToTypeString[18] = "string"; // TYPE_SINT64 - Uses ZigZag encoding.
 
 /** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoFieldToTypescriptInterfaceMember(

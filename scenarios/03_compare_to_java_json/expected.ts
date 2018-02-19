@@ -8,7 +8,7 @@ export namespace various {
   export interface Primitives {
     exampleString: string
     exampleInt: number
-    exampleLong: number
+    exampleLong: string
     exampleFloat: number
     exampleDouble: number
     exampleBool: boolean

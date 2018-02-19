@@ -4,7 +4,7 @@ const assert: any = require("assert")
 
 import {transform} from "../src/protoc-gen-ts_interfaces";
 import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb"
-import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto, EnumDescriptorProto, 
+import {FileDescriptorProto, DescriptorProto, FieldDescriptorProto, EnumDescriptorProto,
         EnumValueDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb"
 import * as ts from "typescript"
 
@@ -298,13 +298,13 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortuneContent", "StringKeyword"], 
-        ["fortuneNumber", "NumberKeyword"]]], 
+        ["fortuneContent", "StringKeyword"],
+        ["fortuneNumber", "NumberKeyword"]]],
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
   })
 
   test("a previously-defined message type may be used as the type of a field", () => {
-    const fortuneCookieMessageType = 
+    const fortuneCookieMessageType =
       new MessageTypeProtoBuilder()
         .setName("FortuneCookie")
         .addPrimitiveField("fortuneContent", FieldDescriptorProto.Type.TYPE_STRING)
@@ -326,14 +326,14 @@ suite("transform", () => {
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortuneContent", "StringKeyword"], 
-        ["fortuneNumber", "NumberKeyword"]]], 
+        ["fortuneContent", "StringKeyword"],
+        ["fortuneNumber", "NumberKeyword"]]],
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
 
     assert.deepEqual(
       ["FinalBill", [
-        ["amountCents", "NumberKeyword"], 
-        ["cookie", "FortuneCookie"]]], 
+        ["amountCents", "NumberKeyword"],
+        ["cookie", "FortuneCookie"]]],
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
   })
 
@@ -388,8 +388,8 @@ suite("transform", () => {
                 .setName("Smorgasbord")
                 .addPrimitiveField("originally_double", FieldDescriptorProto.Type.TYPE_DOUBLE)
                 .addPrimitiveField("originally_float", FieldDescriptorProto.Type.TYPE_FLOAT)
-                .addPrimitiveField("originally_int64", FieldDescriptorProto.Type.TYPE_INT64)
-                .addPrimitiveField("originally_uint64", FieldDescriptorProto.Type.TYPE_UINT64)
+                .addPrimitiveField("originally_int64", FieldDescriptorProto.Type.TYPE_STRING)
+                .addPrimitiveField("originally_uint64", FieldDescriptorProto.Type.TYPE_STRING)
                 .addPrimitiveField("originally_int32", FieldDescriptorProto.Type.TYPE_INT32)
                 .addPrimitiveField("originally_fixed64", FieldDescriptorProto.Type.TYPE_FIXED64)
                 .addPrimitiveField("originally_fixed32", FieldDescriptorProto.Type.TYPE_FIXED32)
@@ -403,33 +403,33 @@ suite("transform", () => {
                 .addPrimitiveField("originally_sfixed32", FieldDescriptorProto.Type.TYPE_SFIXED32)
                 .addPrimitiveField("originally_sfixed64", FieldDescriptorProto.Type.TYPE_SFIXED64)
                 .addPrimitiveField("originally_sint32", FieldDescriptorProto.Type.TYPE_SINT32)
-                .addPrimitiveField("originally_sint64", FieldDescriptorProto.Type.TYPE_SINT64)
+                .addPrimitiveField("originally_sint64", FieldDescriptorProto.Type.TYPE_STRING)
                 .build())
           .build())
         .build())
 
     assert.deepEqual(
       ["Smorgasbord", [
-        ["originallyDouble", "NumberKeyword"], 
-        ["originallyFloat", "NumberKeyword"], 
-        ["originallyInt64", "NumberKeyword"], 
-        ["originallyUint64", "NumberKeyword"], 
-        ["originallyInt32", "NumberKeyword"], 
-        ["originallyFixed64", "NumberKeyword"], 
-        ["originallyFixed32", "NumberKeyword"], 
-        ["originallyBool", "BooleanKeyword"], 
-        ["originallyString", "StringKeyword"], 
-        ["originallyBytes", "UnionType"], 
-        ["originallyUint32", "NumberKeyword"], 
-        ["originallySfixed32", "NumberKeyword"], 
-        ["originallySfixed64", "NumberKeyword"], 
-        ["originallySint32", "NumberKeyword"], 
-        ["originallySint64", "NumberKeyword"]]], 
+        ["originallyDouble", "NumberKeyword"],
+        ["originallyFloat", "NumberKeyword"],
+        ["originallyInt64", "StringKeyword"],
+        ["originallyUint64", "StringKeyword"],
+        ["originallyInt32", "NumberKeyword"],
+        ["originallyFixed64", "NumberKeyword"],
+        ["originallyFixed32", "NumberKeyword"],
+        ["originallyBool", "BooleanKeyword"],
+        ["originallyString", "StringKeyword"],
+        ["originallyBytes", "UnionType"],
+        ["originallyUint32", "NumberKeyword"],
+        ["originallySfixed32", "NumberKeyword"],
+        ["originallySfixed64", "NumberKeyword"],
+        ["originallySint32", "NumberKeyword"],
+        ["originallySint64", "StringKeyword"]]],
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
   })
 
   test("convert an enum nested in a message to a typescript const enum that within a module named the same as the message/interface", () => {
-    const protoFortuneKindEnum = 
+    const protoFortuneKindEnum =
       new EnumProtoBuilder()
         .setName("FortuneKind")
         .addValue("A_WISE_SOUNDING_BUT_ACTUALLY_CONFUSED_STATEMENT")
@@ -454,14 +454,14 @@ suite("transform", () => {
     assert.equal("FortuneCookie", (<ts.Identifier>moduleDeclaration.name).escapedText)
     assert.deepEqual(
       ["FortuneKind", [
-        "A_WISE_SOUNDING_BUT_ACTUALLY_CONFUSED_STATEMENT", 
-        "SPECIFIC_PREDICTION_OF_WHAT_WILL_HAPPEN"]], 
+        "A_WISE_SOUNDING_BUT_ACTUALLY_CONFUSED_STATEMENT",
+        "SPECIFIC_PREDICTION_OF_WHAT_WILL_HAPPEN"]],
         extractEnumInfo((<ts.ModuleBlock>moduleDeclaration.body).statements[0]))
 
     assert.deepEqual(
       ["FortuneCookie", [
-        ["fortuneContent", "StringKeyword"], 
-        ["fortuneKind", "FortuneKind"]]], 
+        ["fortuneContent", "StringKeyword"],
+        ["fortuneKind", "FortuneKind"]]],
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
   })
 
@@ -491,18 +491,18 @@ suite("transform", () => {
         .build())
 
     assert.deepEqual(
-      ["GetRandomFortuneRequest", []], 
+      ["GetRandomFortuneRequest", []],
       extractInterfaceInfo(childNode(codeGenResponse, 0)))
 
     assert.deepEqual(
       ["GetRandomFortuneResponse", [
-        ["fortuneContent", "StringKeyword"]]], 
+        ["fortuneContent", "StringKeyword"]]],
       extractInterfaceInfo(childNode(codeGenResponse, 1)))
 
     assert.deepEqual(
       ["FortuneService", [
         ["getRandomFortune", ["GetRandomFortuneRequest"], "Promise"]
-      ]], 
+      ]],
       extractInterfaceInfo(childNode(codeGenResponse, 2)))
   })
 
@@ -547,7 +547,7 @@ suite("transform", () => {
     const moduleDeclaration = (<ts.ModuleDeclaration>childNode(codeGenResponse, 0))
     assert.equal("TopLevel", (<ts.Identifier>moduleDeclaration.name).escapedText)
     assert.deepEqual(
-      ["Nested", []], 
+      ["Nested", []],
         extractInterfaceInfo((<ts.ModuleBlock>moduleDeclaration.body).statements[0]))
   })
 

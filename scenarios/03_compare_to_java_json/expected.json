@@ -5,7 +5,7 @@
       "onePrimitive": {
         "exampleString": "this is an example string value",
         "exampleInt": 77,
-        "exampleLong": 78,
+        "exampleLong": "78",
         "exampleFloat": 77.78,
         "exampleDouble": 78.78,
         "exampleBool": true
