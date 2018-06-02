@@ -1,11 +1,11 @@
 import {FileDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto,
-        DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto, OneofDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb";
-import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb";
+        DescriptorProto, FieldDescriptorProto, MethodDescriptorProto, ServiceDescriptorProto, OneofDescriptorProto} from "google-protobuf/google/protobuf/descriptor_pb"
+import {CodeGeneratorRequest, CodeGeneratorResponse} from "google-protobuf/google/protobuf/compiler/plugin_pb"
 
 export const GENERATED_TYPESCRIPT_FILE_NAME: string = "proto.generated.ts"
 
 function camelize(str: string) {
-  return str.replace(/_([a-z])/g, function (g) { return g[1].toUpperCase(); });
+  return str.replace(/_([a-z])/g, function (g) { return g[1].toUpperCase() })
 }
 
 /** Accumulates ts interface file content */
@@ -17,7 +17,7 @@ class StringWriter {
   }
 
   getContent(): string {
-    return this.content;
+    return this.content
   }
 }
 
@@ -102,12 +102,12 @@ class TypescriptDeclarationComposer {
 
   enumValue(enumName: string): TypescriptDeclarationComposer {
     this.appendLine(`${enumName} = "${enumName}",`) // there's a comma
-    return this;
+    return this
   }
 
   lastEnumValue(enumName: string): TypescriptDeclarationComposer {
     this.appendLine(`${enumName} = "${enumName}"`) // note: no comma
-    return this;
+    return this
   }
 
   clearNamespace(): TypescriptDeclarationComposer {
@@ -120,7 +120,7 @@ class TypescriptDeclarationComposer {
   }
 
   getContent(): string {
-    return this.writer.getContent();
+    return this.writer.getContent()
   }
 
   private appendLine(str: string) {
@@ -136,17 +136,17 @@ class TypescriptDeclarationComposer {
 function transformProtoEnumTypeToTypescriptInterface(
   tsComposer: TypescriptDeclarationComposer,
   protoEnumType: EnumDescriptorProto) {
-  tsComposer.startConstEnum(protoEnumType.getName());
-  const tsComposerForEnumValues = tsComposer.withIndent();
+  tsComposer.startConstEnum(protoEnumType.getName())
+  const tsComposerForEnumValues = tsComposer.withIndent()
   const lastIndex = protoEnumType.getValueList().length - 1
   protoEnumType.getValueList().forEach((protoEnumValue, index) => {
     if (index == lastIndex) {
-      transformProtoEnumValueToLastTypescriptEnumValue(tsComposerForEnumValues, protoEnumValue);
+      transformProtoEnumValueToLastTypescriptEnumValue(tsComposerForEnumValues, protoEnumValue)
     } else {
-      transformProtoEnumValueToTypescriptEnumValue(tsComposerForEnumValues, protoEnumValue);
+      transformProtoEnumValueToTypescriptEnumValue(tsComposerForEnumValues, protoEnumValue)
     }
-  });
-  tsComposer.endBlock();
+  })
+  tsComposer.endBlock()
 }
 
 /** Given a proto message type, write the corresponding ts interface (with members corresponding to proto fields) */
@@ -168,46 +168,46 @@ function transformProtoMessageTypeToTypescriptInterface(
     tsComposer.clearNamespace() // this seems inelegant for some reason, but the spacing all works out this way...
   }
 
-  tsComposer.startInterface(protoMessageType.getName());
-  const tsComposerForFields = tsComposer.withIndent();
+  tsComposer.startInterface(protoMessageType.getName())
+  const tsComposerForFields = tsComposer.withIndent()
   for (let protoField of protoMessageType.getFieldList()) {
-    transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField);
+    transformProtoFieldToTypescriptInterfaceMember(tsComposerForFields, protoField)
   }
-  tsComposer.endBlock();
+  tsComposer.endBlock()
 }
 
 /** Given a proto service, write the corresponding ts interface (with method signatures corresponding to rpc's) */
 function transformProtoServiceToTypescriptInterface(
   tsComposer: TypescriptDeclarationComposer,
   protoService: ServiceDescriptorProto) {
-  tsComposer.startInterface(protoService.getName());
-  const tsComposerForRpcMethods = tsComposer.withIndent();
+  tsComposer.startInterface(protoService.getName())
+  const tsComposerForRpcMethods = tsComposer.withIndent()
   for (let protoRpcMethod of protoService.getMethodList()) {
-    transformProtoRpcMethodToTypescriptInterfaceMethodSignature(tsComposerForRpcMethods, protoRpcMethod);
+    transformProtoRpcMethodToTypescriptInterfaceMethodSignature(tsComposerForRpcMethods, protoRpcMethod)
   }
-  tsComposer.endBlock();
+  tsComposer.endBlock()
 }
 
 // directly lifted from ts-protoc-gen
-const TypeNumToTypeString: {[key: number]: string} = {};
-TypeNumToTypeString[1] = "number"; // TYPE_DOUBLE
-TypeNumToTypeString[2] = "number"; // TYPE_FLOAT
-TypeNumToTypeString[3] = "string"; // TYPE_INT64
-TypeNumToTypeString[4] = "string"; // TYPE_UINT64
-TypeNumToTypeString[5] = "number"; // TYPE_INT32
-TypeNumToTypeString[6] = "number"; // TYPE_FIXED64
-TypeNumToTypeString[7] = "number"; // TYPE_FIXED32
-TypeNumToTypeString[8] = "boolean"; // TYPE_BOOL
-TypeNumToTypeString[9] = "string"; // TYPE_STRING
-// TypeNumToTypeString[10] = "Object"; // TYPE_GROUP
-// TypeNumToTypeString[MESSAGE_TYPE] = "Object"; // TYPE_MESSAGE - Length-delimited aggregate.
-TypeNumToTypeString[12] = "Uint8Array"; // TYPE_BYTES
-TypeNumToTypeString[13] = "number"; // TYPE_UINT32
-TypeNumToTypeString[14] = "number"; // TYPE_ENUM
-TypeNumToTypeString[15] = "number"; // TYPE_SFIXED32
-TypeNumToTypeString[16] = "number"; // TYPE_SFIXED64
-TypeNumToTypeString[17] = "number"; // TYPE_SINT32 - Uses ZigZag encoding.
-TypeNumToTypeString[18] = "string"; // TYPE_SINT64 - Uses ZigZag encoding.
+const TypeNumToTypeString: {[key: number]: string} = {}
+TypeNumToTypeString[1] = "number" // TYPE_DOUBLE
+TypeNumToTypeString[2] = "number" // TYPE_FLOAT
+TypeNumToTypeString[3] = "string" // TYPE_INT64
+TypeNumToTypeString[4] = "string" // TYPE_UINT64
+TypeNumToTypeString[5] = "number" // TYPE_INT32
+TypeNumToTypeString[6] = "number" // TYPE_FIXED64
+TypeNumToTypeString[7] = "number" // TYPE_FIXED32
+TypeNumToTypeString[8] = "boolean" // TYPE_BOOL
+TypeNumToTypeString[9] = "string" // TYPE_STRING
+// TypeNumToTypeString[10] = "Object" // TYPE_GROUP
+// TypeNumToTypeString[MESSAGE_TYPE] = "Object" // TYPE_MESSAGE - Length-delimited aggregate.
+TypeNumToTypeString[12] = "Uint8Array" // TYPE_BYTES
+TypeNumToTypeString[13] = "number" // TYPE_UINT32
+TypeNumToTypeString[14] = "number" // TYPE_ENUM
+TypeNumToTypeString[15] = "number" // TYPE_SFIXED32
+TypeNumToTypeString[16] = "number" // TYPE_SFIXED64
+TypeNumToTypeString[17] = "number" // TYPE_SINT32 - Uses ZigZag encoding.
+TypeNumToTypeString[18] = "string" // TYPE_SINT64 - Uses ZigZag encoding.
 
 /** Given a proto field, write the corresponding member of a ts interface */
 function transformProtoFieldToTypescriptInterfaceMember(
@@ -240,15 +240,15 @@ function transformProtoFieldToTypescriptInterfaceMember(
 
   if (protoField.getType() == FieldDescriptorProto.Type.TYPE_MESSAGE ||
       protoField.getType() == FieldDescriptorProto.Type.TYPE_ENUM) {
-    tsComposer.member(finalFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix);
+    tsComposer.member(finalFieldName, toTsTypeName(protoField.getTypeName()) + typeNameSuffix)
   } else if (protoField.getType() == FieldDescriptorProto.Type.TYPE_BYTES) {
-    tsComposer.member(finalFieldName, "Uint8Array | string"); // what do we do about repeated, bytes?
+    tsComposer.member(finalFieldName, "Uint8Array | string") // what do we do about repeated, bytes?
   } else {
-    const tsType = TypeNumToTypeString[protoField.getType()];
+    const tsType = TypeNumToTypeString[protoField.getType()]
     if (tsType == null) {
-      throw new Error(`no ts type found for proto type number ${protoField.getType()}`);
+      throw new Error(`no ts type found for proto type number ${protoField.getType()}`)
     }
-    tsComposer.member(finalFieldName, tsType + typeNameSuffix);
+    tsComposer.member(finalFieldName, tsType + typeNameSuffix)
   }
 }
 
@@ -264,12 +264,12 @@ function transformProtoRpcMethodToTypescriptInterfaceMethodSignature(
 
 /** Given a proto enum value, write the corresponding ts enum value */
 function transformProtoEnumValueToTypescriptEnumValue(tsComposer: TypescriptDeclarationComposer, protoEnumValue: EnumValueDescriptorProto): void {
-  tsComposer.enumValue(protoEnumValue.getName());
+  tsComposer.enumValue(protoEnumValue.getName())
 }
 
 /** Given a proto enum value, write the corresponding ts enum value (last position in list) */
 function transformProtoEnumValueToLastTypescriptEnumValue(tsComposer: TypescriptDeclarationComposer, protoEnumValue: EnumValueDescriptorProto): void {
-  tsComposer.lastEnumValue(protoEnumValue.getName());
+  tsComposer.lastEnumValue(protoEnumValue.getName())
 }
 
 function toTsTypeName(protoTypeName: string): string {
@@ -339,13 +339,13 @@ function writePackage(protoPackage: ProtoPackage, tsComposer: TypescriptDeclarat
     if (entry.isProtoFile()) {
       const protoFile = entry.protoFile!
       for (let protoEnumType of protoFile.getEnumTypeList()) {
-        transformProtoEnumTypeToTypescriptInterface(tsComposer, protoEnumType);
+        transformProtoEnumTypeToTypescriptInterface(tsComposer, protoEnumType)
       }
       for (let protoMessageType of protoFile.getMessageTypeList()) {
-        transformProtoMessageTypeToTypescriptInterface(tsComposer, protoMessageType);
+        transformProtoMessageTypeToTypescriptInterface(tsComposer, protoMessageType)
       }
       for (let protoService of protoFile.getServiceList()) {
-        transformProtoServiceToTypescriptInterface(tsComposer, protoService);
+        transformProtoServiceToTypescriptInterface(tsComposer, protoService)
       }
     } else {
       const childPackage = entry.protoPackage!
@@ -390,28 +390,42 @@ export function transform(input: CodeGeneratorRequest): CodeGeneratorResponse {
   return codeGenResponse
 }
 
+// https://stackoverflow.com/questions/20086849/how-to-read-from-stdin-line-by-line-in-node
+
 /** Top-level function, that deserializes CodeGeneratorRequest's,
  * transforms them to CodeGeneratorResponse's, serializes those
  * and writes them to the stdout stream.
  */
 export function transformStream(stdin: NodeJS.ReadStream, stdout: NodeJS.WriteStream) {
-  stdin.on("readable", function () {
+
+  // see https://github.com/steckel/protoc-gen-flow/blob/master/src/plugin.js#L16
+  // for the proper way to read from stdin (and that this is based on)
+
+  const inputChunks: any[] = []
+  let inputLength = 0
+
+  stdin.on('readable', function() {
+    let chunk
+    while (chunk=stdin.read()) {
+      inputChunks.push(chunk)
+      inputLength += chunk.length
+    }
+  })
+
+  stdin.on('end', function() {
+    const typedInputBuff = new Uint8Array(inputLength)
+    typedInputBuff.set(Buffer.concat(inputChunks, inputLength))
+
     try {
-      let chunk
+      const typedInputBuff = new Uint8Array(inputLength)
+      typedInputBuff.set(Buffer.concat(inputChunks, inputLength))
+      const codeGenRequest = CodeGeneratorRequest.deserializeBinary(typedInputBuff)
 
-      while ((chunk = stdin.read())) {
-          if (!(chunk instanceof Buffer)) throw new Error("Did not receive buffer")
-
-          const typedInputBuff = new Uint8Array(chunk.length)
-          typedInputBuff.set(chunk)
-          const codeGenRequest = CodeGeneratorRequest.deserializeBinary(typedInputBuff)
-
-          const codeGenResponse = transform(codeGenRequest);
-          stdout.write(new Buffer(codeGenResponse.serializeBinary()))
-      }
+      const codeGenResponse = transform(codeGenRequest)
+      stdout.write(new Buffer(codeGenResponse.serializeBinary()))
     } catch (err) {
-      console.error("protoc-gen-ts_interfaces error: " + err.stack + "\n");
-      process.exit(1);
+      console.error("protoc-gen-ts_interfaces error: " + err.stack + "\n")
+      process.exit(1)
     }
   })
 }
