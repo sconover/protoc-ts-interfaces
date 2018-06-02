@@ -12,6 +12,14 @@ dev setup:
 - to run tests: bazel test //...
 - followed http://blog.npmjs.org/post/118810260230/building-a-simple-command-line-tool-with-npm to make the cli and publish the package to the npm repo
 
+TODO: before this project graduates out of 0.0.x mode
+  - the bazel build needs a serious rethink / refinement...
+    it's not set up to "dirty" correctly and therefore changes in some files which should cause build
+    tasks to re-run, do not
+  - need to reconsider whether the constraints imposed by making it so these objects can be directly
+    JSON.stringify'd is worth it, vs having a small object transform step. oneof doesn't map well, for example.
+  - int64's as strings makes me sad but that's more grandpa-shakes-fist-at-cloud...
+
 TODO (known):
   - maps, per https://developers.google.com/protocol-buffers/docs/proto3#json
   - bytes / b64
